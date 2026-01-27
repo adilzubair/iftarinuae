@@ -2,8 +2,6 @@
 
 A community-driven platform to share and discover Iftar spots in the UAE.
 
-![IftarInUAE](https://raw.githubusercontent.com/adilzubair/iftarinuae/main/attached_assets/screenshot.png) *(Placeholder for project banner/screenshot)*
-
 ## 🌟 Overview
 
 IftarInUAE is a web application designed to help the community in the UAE find and share recommended spots for Iftar during the holy month of Ramadan. Users can browse trusted locations, view details, and contribute by adding new spots they've discovered.
