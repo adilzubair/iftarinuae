@@ -19,6 +19,17 @@
             "dest": "/api/index.ts"
         },
         {
+            "src": "/assets/(.*)",
+            "dest": "/assets/$1"
+        },
+        {
+            "src": "/favicon.png",
+            "dest": "/favicon.png"
+        },
+        {
+            "handle": "filesystem"
+        },
+        {
             "src": "/(.*)",
             "dest": "/index.html"
         }
