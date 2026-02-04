@@ -1,6 +1,7 @@
 import { createApp } from "./app";
 import { createServer } from "http";
 import { serveStatic } from "./static";
+import { setupVite } from "./vite";
 
 (async () => {
   const app = await createApp();
@@ -12,7 +13,6 @@ import { serveStatic } from "./static";
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
-    const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
 
