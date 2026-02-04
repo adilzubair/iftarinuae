@@ -11,27 +11,31 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Helper function to build PlaceWithReviews from a Place
+  private async buildPlaceWithReviews(place: Place, includeReviews: boolean = false): Promise<PlaceWithReviews> {
+    const placeReviews = await db.select().from(reviews).where(eq(reviews.placeId, place.id));
+    const totalRating = placeReviews.reduce((sum, r) => sum + r.rating, 0);
+    const averageRating = placeReviews.length > 0 ? totalRating / placeReviews.length : 0;
+
+    return {
+      ...place,
+      reviews: includeReviews ? placeReviews : [],
+      reviewCount: placeReviews.length,
+      averageRating: Number(averageRating.toFixed(1)),
+    };
+  }
+
   async getPlaces(): Promise<PlaceWithReviews[]> {
-    // Get all places
-    const allPlaces = await db.select().from(places).orderBy(desc(places.createdAt));
+    // Get only approved places for public view
+    const approvedPlaces = await db
+      .select()
+      .from(places)
+      .where(eq(places.approved, true))
+      .orderBy(desc(places.createdAt));
 
-    // For each place, get stats
-    // Note: In a larger app, we'd use a more complex SQL query with joins and aggregation,
-    // but for simplicity and type safety with Drizzle, we'll fetch relations or aggregate separately.
-    // Let's do a join to get reviews to calculate averages.
-
-    const result = await Promise.all(allPlaces.map(async (place) => {
-      const placeReviews = await db.select().from(reviews).where(eq(reviews.placeId, place.id));
-      const totalRating = placeReviews.reduce((sum, r) => sum + r.rating, 0);
-      const averageRating = placeReviews.length > 0 ? totalRating / placeReviews.length : 0;
-
-      return {
-        ...place,
-        reviews: [], // List view doesn't need full reviews
-        reviewCount: placeReviews.length,
-        averageRating: Number(averageRating.toFixed(1)),
-      };
-    }));
+    const result = await Promise.all(
+      approvedPlaces.map((place) => this.buildPlaceWithReviews(place, false))
+    );
 
     return result;
   }
@@ -40,21 +44,7 @@ export class DatabaseStorage implements IStorage {
     const [place] = await db.select().from(places).where(eq(places.id, id));
     if (!place) return undefined;
 
-    const placeReviews = await db
-      .select()
-      .from(reviews)
-      .where(eq(reviews.placeId, id))
-      .orderBy(desc(reviews.createdAt));
-
-    const totalRating = placeReviews.reduce((sum, r) => sum + r.rating, 0);
-    const averageRating = placeReviews.length > 0 ? totalRating / placeReviews.length : 0;
-
-    return {
-      ...place,
-      reviews: placeReviews,
-      reviewCount: placeReviews.length,
-      averageRating: Number(averageRating.toFixed(1)),
-    };
+    return this.buildPlaceWithReviews(place, true);
   }
 
   async createPlace(place: InsertPlace): Promise<Place> {
@@ -73,6 +63,90 @@ export class DatabaseStorage implements IStorage {
       .from(reviews)
       .where(and(eq(reviews.userId, userId), eq(reviews.placeId, placeId)));
     return !!existing;
+  }
+
+  // === ADMIN METHODS ===
+
+  async getPlacesForAdmin(): Promise<PlaceWithReviews[]> {
+    // Get ALL places (approved and pending) for admin view
+    const allPlaces = await db.select().from(places).orderBy(desc(places.createdAt));
+
+    const result = await Promise.all(
+      allPlaces.map((place) => this.buildPlaceWithReviews(place, false))
+    );
+
+    return result;
+  }
+
+  async getPendingPlaces(): Promise<PlaceWithReviews[]> {
+    // Get only pending (unapproved) places
+    const pendingPlaces = await db
+      .select()
+      .from(places)
+      .where(eq(places.approved, false))
+      .orderBy(desc(places.createdAt));
+
+    const result = await Promise.all(
+      pendingPlaces.map((place) => this.buildPlaceWithReviews(place, false))
+    );
+
+    return result;
+  }
+
+  async approvePlace(placeId: string, adminUserId: string): Promise<Place | undefined> {
+    const [approvedPlace] = await db
+      .update(places)
+      .set({
+        approved: true,
+        approvedBy: adminUserId,
+        approvedAt: new Date(),
+      })
+      .where(eq(places.id, placeId))
+      .returning();
+
+    return approvedPlace;
+  }
+
+  async rejectPlace(placeId: string): Promise<boolean> {
+    // Delete rejected places  
+    const result = await db
+      .delete(places)
+      .where(eq(places.id, placeId))
+      .returning();
+
+    return result.length > 0;
+  }
+
+  async getAdminStats(): Promise<{
+    totalPlaces: number;
+    approvedPlaces: number;
+    pendingPlaces: number;
+    approvedToday: number;
+  }> {
+    const allPlacesResult = await db.select().from(places);
+    const approvedPlacesResult = await db.select().from(places).where(eq(places.approved, true));
+    const pendingPlacesResult = await db.select().from(places).where(eq(places.approved, false));
+
+    // Get places approved today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const approvedTodayResult = await db
+      .select()
+      .from(places)
+      .where(
+        and(
+          eq(places.approved, true),
+          sql`${places.approvedAt} >= ${today}`
+        )
+      );
+
+    return {
+      totalPlaces: allPlacesResult.length,
+      approvedPlaces: approvedPlacesResult.length,
+      pendingPlaces: pendingPlacesResult.length,
+      approvedToday: approvedTodayResult.length,
+    };
   }
 }
 
