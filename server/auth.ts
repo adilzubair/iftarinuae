@@ -15,6 +15,7 @@ declare global {
                 firstName: string | null;
                 lastName: string | null;
                 profileImageUrl: string | null;
+                isAdmin: boolean;
             };
         }
     }
@@ -64,6 +65,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
             firstName: user.firstName,
             lastName: user.lastName,
             profileImageUrl: user.profileImageUrl,
+            isAdmin: user.isAdmin || false,
         };
 
         next();
@@ -97,6 +99,7 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
                 firstName: user.firstName,
                 lastName: user.lastName,
                 profileImageUrl: user.profileImageUrl,
+                isAdmin: user.isAdmin || false,
             };
         }
     } catch (error) {
