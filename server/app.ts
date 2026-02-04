@@ -8,6 +8,7 @@ export async function createApp() {
     // Security Headers
     app.use(helmet({
         contentSecurityPolicy: false, // Disable CSP for simplicity in this demo, enable for prod
+        crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, // Allow Firebase Auth popups
     }));
 
     // JSON Body Parser with rawBody capture (if needed for webhooks, else standard is fine)

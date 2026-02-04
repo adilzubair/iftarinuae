@@ -108,7 +108,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async rejectPlace(placeId: string): Promise<boolean> {
-    // Delete rejected places  
+    // First delete associated reviews to avoid FK constraint violations
+    await db.delete(reviews).where(eq(reviews.placeId, placeId));
+
+    // Then delete the place
     const result = await db
       .delete(places)
       .where(eq(places.id, placeId))
