@@ -10,15 +10,16 @@ export async function createApp() {
     // Security Headers
     app.use(helmet({
         contentSecurityPolicy: false, // Disable CSP for simplicity in this demo, enable for prod
-        crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, // Allow Firebase Auth popups
+        crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow Firebase Auth popups (google.com origin)
     }));
 
     // Rate Limiting
     const limiter = rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
-        limit: 100, // Limit each IP to 100 requests per windowMs
+        limit: 1000, // Relaxed limit: 1000 requests per 15 minutes
         standardHeaders: true,
         legacyHeaders: false,
+        message: { message: "Too many requests, please try again later." }
     });
 
     // Apply rate limiting to all requests
