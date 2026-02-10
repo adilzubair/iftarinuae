@@ -84,3 +84,7 @@ export type PlaceWithReviews = Place & {
 
 export type PlaceResponse = PlaceWithReviews;
 export type PlacesListResponse = PlaceWithReviews[];
+
+export type PlaceWithDistance = PlaceWithReviews & {
+  distance?: number;
+};

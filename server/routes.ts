@@ -19,6 +19,52 @@ export async function registerRoutes(app: Express): Promise<Express> {
     res.json(places);
   });
 
+  // Get Nearby Places
+  app.get("/api/places/nearby", async (req, res) => {
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ message: "Invalid latitude or longitude" });
+    }
+
+    const places = await storage.getPlaces();
+
+    // Calculate distance and sort
+    const placesWithDistance = places.map(place => {
+      const placeLat = parseFloat(place.latitude || "0");
+      const placeLng = parseFloat(place.longitude || "0");
+
+      if (placeLat === 0 && placeLng === 0) {
+        return { ...place, distance: Infinity };
+      }
+
+      // Haversine formula
+      const R = 6371; // Radius of the earth in km
+      const dLat = deg2rad(placeLat - lat);
+      const dLng = deg2rad(placeLng - lng);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat)) * Math.cos(deg2rad(placeLat)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c; // Distance in km
+
+      return { ...place, distance };
+      return { ...place, distance };
+    }).sort((a, b) => a.distance - b.distance).slice(0, 20); // Limit to top 20 closest places
+
+    // Filter out places with Infinity distance (invalid coordinates) if desired, 
+    // or just return valid ones first. 
+    // We already sliced the top 20, so we just return them.
+
+    res.json(placesWithDistance);
+  });
+
+  function deg2rad(deg: number) {
+    return deg * (Math.PI / 180)
+  }
+
   // Get Place Details
   app.get(api.places.get.path, async (req, res) => {
     const place = await storage.getPlace(req.params.id as string);
