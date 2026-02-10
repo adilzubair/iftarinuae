@@ -2,6 +2,8 @@ import express from "express";
 import { registerRoutes } from "./routes";
 import helmet from "helmet";
 
+import { rateLimit } from "express-rate-limit";
+
 export async function createApp() {
     const app = express();
 
@@ -10,6 +12,17 @@ export async function createApp() {
         contentSecurityPolicy: false, // Disable CSP for simplicity in this demo, enable for prod
         crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, // Allow Firebase Auth popups
     }));
+
+    // Rate Limiting
+    const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        limit: 100, // Limit each IP to 100 requests per windowMs
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
+
+    // Apply rate limiting to all requests
+    app.use(limiter);
 
     // JSON Body Parser with rawBody capture (if needed for webhooks, else standard is fine)
     app.use(express.json());
