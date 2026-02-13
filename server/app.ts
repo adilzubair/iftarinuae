@@ -8,15 +8,36 @@ export async function createApp() {
     const app = express();
 
     // Security Headers
+    // Security Headers
     app.use(helmet({
-        contentSecurityPolicy: false, // Disable CSP for simplicity in this demo, enable for prod
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://www.googletagmanager.com"],
+                connectSrc: ["'self'", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://*.firebaseio.com", "wss://*.firebaseio.com"],
+                imgSrc: ["'self'", "data:", "https:", "blob:"],
+                styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+                fontSrc: ["'self'", "https://fonts.gstatic.com"],
+                frameSrc: ["'self'", "https://*.firebaseapp.com", "https://*.googleapis.com"], // For Firebase Auth iframe
+            },
+        },
         crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow Firebase Auth popups (google.com origin)
     }));
 
     // Rate Limiting
+    // General Rate Limiting
     const limiter = rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         limit: 1000, // Relaxed limit: 1000 requests per 15 minutes
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { message: "Too many requests, please try again later." }
+    });
+
+    // Strict Rate Limiting for sensitive routes (e.g. creating content)
+    const strictLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        limit: 50, // Stricter limit: 50 requests per 15 minutes
         standardHeaders: true,
         legacyHeaders: false,
         message: { message: "Too many requests, please try again later." }
@@ -56,12 +77,12 @@ export async function createApp() {
     });
 
     // Register API Routes
-    await registerRoutes(app);
+    await registerRoutes(app, strictLimiter);
 
     // Global Error Handler
     app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
         const status = err.status || err.statusCode || 500;
-        const message = err.message || "Internal Server Error";
+        const message = process.env.NODE_ENV === "production" ? "Internal Server Error" : (err.message || "Internal Server Error");
         console.error("Internal Server Error:", err);
         if (res.headersSent) {
             return next(err);

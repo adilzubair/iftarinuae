@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, RequestHandler } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "../shared/routes";
@@ -7,7 +7,7 @@ import { registerAuthRoutes, isAuthenticated } from "./auth";
 import { isAdmin } from "./middleware/admin";
 import { insertPlaceSchema, insertReviewSchema } from "../shared/schema";
 
-export async function registerRoutes(app: Express): Promise<Express> {
+export async function registerRoutes(app: Express, strictLimiter?: RequestHandler): Promise<Express> {
   // Register Auth Routes (Firebase-based)
   registerAuthRoutes(app);
 
@@ -75,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Express> {
   });
 
   // Create Place (Protected)
-  app.post(api.places.create.path, isAuthenticated, async (req, res) => {
+  app.post(api.places.create.path, strictLimiter || ((req, res, next) => next()), isAuthenticated, async (req, res) => {
     try {
       // Inject createdBy from authenticated user
       const input = insertPlaceSchema.parse(req.body);
@@ -96,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Express> {
   });
 
   // Create Review (Protected)
-  app.post(api.reviews.create.path, isAuthenticated, async (req, res) => {
+  app.post(api.reviews.create.path, strictLimiter || ((req, res, next) => next()), isAuthenticated, async (req, res) => {
     try {
       const placeId = req.params.id as string;
       const userId = req.user!.id;
