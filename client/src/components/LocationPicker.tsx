@@ -31,13 +31,33 @@ interface PhotonFeature {
     state?: string;
     country?: string;
     postcode?: string;
+    osm_type?: string;
+    type?: string;
   };
   geometry: {
     coordinates: [number, number]; // [lng, lat]
   };
 }
 
-interface NominatimResponse {
+interface NominatimForwardResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  type: string;
+  class: string;
+  address: {
+    amenity?: string;
+    road?: string;
+    neighbourhood?: string;
+    suburb?: string;
+    city_district?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+}
+
+interface NominatimReverseResponse {
   display_name: string;
   address: {
     amenity?: string;
@@ -49,10 +69,19 @@ interface NominatimResponse {
   };
 }
 
+/** A normalised search result from either API */
+interface SearchResult {
+  label: string;      // Primary display text
+  sublabel: string;   // Secondary display text (area, city)
+  typeLabel: string;  // Human-readable type (Neighbourhood, Mosque, etc.)
+  lat: number;
+  lng: number;
+}
+
 type Tab = "search" | "map" | "gps";
 
-// UAE bounding box for Photon to bias results
-const UAE_BBOX = "51.5,22.6,56.4,26.1";
+// Photon bounding box — used as a soft bias hint, not a hard filter
+const PHOTON_BBOX = "51.5,22.6,56.4,26.1";
 
 // Required by Nominatim ToS: https://operations.osmfoundation.org/policies/nominatim/
 const NOMINATIM_HEADERS = {
@@ -75,13 +104,81 @@ function sanitiseAddress(raw: string): string {
   return raw.replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, 300);
 }
 
-function buildReadableAddress(props: PhotonFeature["properties"]): string {
-  const parts: string[] = [];
-  if (props.name) parts.push(props.name);
-  if (props.street) parts.push(props.street);
-  if (props.city) parts.push(props.city);
-  if (props.state) parts.push(props.state);
-  return sanitiseAddress(parts.join(", ") || "Unknown location");
+/** Map OSM class/type to a friendly label shown under each result */
+function friendlyType(cls: string, type: string): string {
+  const key = `${cls}/${type}`;
+  const map: Record<string, string> = {
+    "place/neighbourhood": "Neighbourhood",
+    "place/suburb": "Area",
+    "place/quarter": "District",
+    "place/city_district": "District",
+    "place/city": "City",
+    "place/town": "Town",
+    "place/village": "Village",
+    "amenity/restaurant": "Restaurant",
+    "amenity/cafe": "Café",
+    "amenity/fast_food": "Fast Food",
+    "amenity/place_of_worship": "Mosque / Place of Worship",
+    "amenity/mosque": "Mosque",
+    "amenity/school": "School",
+    "amenity/hospital": "Hospital",
+    "amenity/mall": "Mall",
+    "shop/mall": "Mall",
+    "shop/supermarket": "Supermarket",
+    "leisure/park": "Park",
+    "tourism/hotel": "Hotel",
+    "tourism/attraction": "Attraction",
+    "highway/residential": "Street",
+    "highway/primary": "Road",
+    "highway/secondary": "Road",
+    "highway/tertiary": "Road",
+    "highway/service": "Road",
+  };
+  return map[key] ?? map[`amenity/${type}`] ?? map[`place/${type}`] ?? cls.charAt(0).toUpperCase() + cls.slice(1);
+}
+
+/** Build a SearchResult from a Nominatim forward result */
+function fromNominatim(r: NominatimForwardResult): SearchResult | null {
+  const lat = parseFloat(r.lat);
+  const lng = parseFloat(r.lon);
+  if (!isValidCoord(lat, lng)) return null;
+
+  const a = r.address;
+  // Primary label: most specific named part
+  const label = sanitiseAddress(
+    a.amenity ?? a.road ?? a.neighbourhood ?? a.suburb ?? a.city_district ?? r.display_name.split(",")[0]
+  );
+  // Sublabel: area + city
+  const subParts = [a.suburb ?? a.city_district ?? a.neighbourhood, a.city ?? a.state].filter(Boolean) as string[];
+  const sublabel = sanitiseAddress(subParts.join(", "));
+
+  return { label, sublabel, typeLabel: friendlyType(r.class, r.type), lat, lng };
+}
+
+/** Build a SearchResult from a Photon feature */
+function fromPhoton(f: PhotonFeature): SearchResult | null {
+  const [lng, lat] = f.geometry.coordinates;
+  if (!isValidCoord(lat, lng)) return null;
+  const p = f.properties;
+  const label = sanitiseAddress(p.name ?? p.street ?? "Unknown");
+  const subParts = [p.city ?? p.state].filter(Boolean) as string[];
+  const sublabel = sanitiseAddress(subParts.join(", "));
+  const typeLabel = friendlyType(p.osm_type ?? "", p.type ?? "");
+  return { label, sublabel, typeLabel, lat, lng };
+}
+
+/** Deduplicate results that are within ~200 m of each other (keep first occurrence) */
+function deduplicateResults(results: SearchResult[]): SearchResult[] {
+  const out: SearchResult[] = [];
+  for (const r of results) {
+    const tooClose = out.some((o) => {
+      const dLat = (r.lat - o.lat) * 111000;
+      const dLng = (r.lng - o.lng) * 111000 * Math.cos((r.lat * Math.PI) / 180);
+      return Math.sqrt(dLat * dLat + dLng * dLng) < 200;
+    });
+    if (!tooClose) out.push(r);
+  }
+  return out.slice(0, 8);
 }
 
 export function LocationPicker({
@@ -96,9 +193,10 @@ export function LocationPicker({
 
   // Search tab state
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<PhotonFeature[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
 
   // Map tab state
   const [mapLat, setMapLat] = useState<number | undefined>();
@@ -115,42 +213,80 @@ export function LocationPicker({
     setError(null);
   };
 
-  // ── Search tab: Photon autocomplete ──────────────────────────────────────
+  // ── Search tab: dual-API search (Nominatim forward + Photon) ─────────────
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    // Cancel any in-flight requests
+    if (searchAbortRef.current) searchAbortRef.current.abort();
 
-    if (searchQuery.trim().length < 2) {
+    const q = searchQuery.trim();
+    if (q.length < 1) {
       setSearchResults([]);
       return;
     }
 
     searchDebounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
       setIsSearching(true);
+
       try {
-        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchQuery)}&limit=5&bbox=${UAE_BBOX}&lang=en`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Search failed");
-        const data = await res.json();
-        setSearchResults(data.features ?? []);
-      } catch {
-        setSearchResults([]);
+        // Fire both APIs in parallel
+        const nominatimUrl =
+          `https://nominatim.openstreetmap.org/search` +
+          `?q=${encodeURIComponent(q)}` +
+          `&format=json&addressdetails=1&limit=6` +
+          `&countrycodes=ae` +
+          `&accept-language=en`;
+
+        const photonUrl =
+          `https://photon.komoot.io/api/` +
+          `?q=${encodeURIComponent(q)}` +
+          `&limit=5&bbox=${PHOTON_BBOX}&lang=en`;
+
+        const [nominatimRes, photonRes] = await Promise.allSettled([
+          fetch(nominatimUrl, { signal: controller.signal, headers: NOMINATIM_HEADERS }),
+          fetch(photonUrl,    { signal: controller.signal }),
+        ]);
+
+        const nominatimResults: SearchResult[] = [];
+        if (nominatimRes.status === "fulfilled" && nominatimRes.value.ok) {
+          const data: NominatimForwardResult[] = await nominatimRes.value.json();
+          for (const r of data) {
+            const sr = fromNominatim(r);
+            if (sr) nominatimResults.push(sr);
+          }
+        }
+
+        const photonResults: SearchResult[] = [];
+        if (photonRes.status === "fulfilled" && photonRes.value.ok) {
+          const data = await photonRes.value.json();
+          for (const f of (data.features ?? []) as PhotonFeature[]) {
+            const sr = fromPhoton(f);
+            if (sr) photonResults.push(sr);
+          }
+        }
+
+        // Nominatim first (better for areas/streets), then Photon (better for POI names)
+        const merged = deduplicateResults([...nominatimResults, ...photonResults]);
+        setSearchResults(merged);
+      } catch (err: any) {
+        if (err?.name !== "AbortError") setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
-    }, 300);
+    }, 350);
 
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
   }, [searchQuery]);
 
-  const handleSearchSelect = (feature: PhotonFeature) => {
-    const [lng, lat] = feature.geometry.coordinates;
-    if (!isValidCoord(lat, lng)) return; // Discard malformed API responses
-    const address = buildReadableAddress(feature.properties);
-    setSearchQuery(address);
+  const handleSearchSelect = (result: SearchResult) => {
+    const address = sanitiseAddress(`${result.label}${result.sublabel ? ", " + result.sublabel : ""}`);
+    setSearchQuery(result.label);
     setSearchResults([]);
-    notifyLocation({ address, latitude: lat.toString(), longitude: lng.toString() });
+    notifyLocation({ address, latitude: result.lat.toString(), longitude: result.lng.toString() });
   };
 
   // ── Map tab: Nominatim reverse geocode on pin drop ───────────────────────
@@ -166,7 +302,7 @@ export function LocationPicker({
         { headers: NOMINATIM_HEADERS }
       );
       if (!res.ok) throw new Error("Reverse geocode failed");
-      const data: NominatimResponse = await res.json();
+      const data: NominatimReverseResponse = await res.json();
 
       const parts: string[] = [];
       if (data.address.amenity) parts.push(data.address.amenity);
@@ -209,7 +345,7 @@ export function LocationPicker({
             { headers: NOMINATIM_HEADERS }
           );
           if (!res.ok) throw new Error("Failed to fetch address");
-          const data: NominatimResponse = await res.json();
+          const data: NominatimReverseResponse = await res.json();
 
           const parts: string[] = [];
           if (data.address.amenity) parts.push(data.address.amenity);
@@ -310,20 +446,25 @@ export function LocationPicker({
                   exit={{ opacity: 0, y: -4 }}
                   className="absolute z-50 w-full mt-1 bg-background border border-border rounded-xl shadow-lg overflow-hidden"
                 >
-                  {searchResults.map((feature, i) => {
-                    const address = buildReadableAddress(feature.properties);
-                    return (
+                  {searchResults.map((result, i) => (
                       <button
                         key={i}
                         type="button"
-                        onClick={() => handleSearchSelect(feature)}
+                        onClick={() => handleSearchSelect(result)}
                         className="w-full flex items-start gap-2.5 px-4 py-3 text-left hover:bg-secondary/50 transition-colors border-b border-border/50 last:border-0"
                       >
-                        <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm leading-snug">{address}</span>
+                        <MapPin className="w-4 h-4 text-primary mt-1 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium leading-snug truncate">{result.label}</span>
+                            <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">{result.typeLabel}</span>
+                          </div>
+                          {result.sublabel && (
+                            <span className="text-xs text-muted-foreground truncate block mt-0.5">{result.sublabel}</span>
+                          )}
+                        </div>
                       </button>
-                    );
-                  })}
+                    ))}
                 </motion.div>
               )}
             </AnimatePresence>
