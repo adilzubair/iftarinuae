@@ -81,6 +81,9 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        // UAE Flag Colours
+        "uae-red": "hsl(var(--uae-red) / <alpha-value>)",
+        "uae-green": "hsl(var(--uae-green) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

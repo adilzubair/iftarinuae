@@ -23,7 +23,7 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
       <Link href={`/places/${place.id}`} className="block h-full group">
-        <article className="h-full bg-card rounded-2xl border border-border/50 p-5 shadow-sm hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1 hover:border-l-[3px] hover:border-l-[hsl(var(--uae-green))] transition-all duration-300 flex flex-col justify-between">
+        <article className="h-full bg-card rounded-2xl border border-border/50 p-5 shadow-sm hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1 hover:border-l-[3px] hover:border-l-uae-green transition-all duration-300 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-display font-bold text-lg leading-tight group-hover:text-primary/80 transition-colors">
@@ -38,7 +38,7 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
             </div>
             
             <div className="flex items-start gap-1.5 text-muted-foreground mb-4">
-              <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-[hsl(var(--uae-red))]" />
+              <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-uae-red" />
               <div className="flex flex-col">
                 {typeof (place as any).distance === 'number' && (
                   <span className="text-xs font-semibold text-primary mb-0.5">
@@ -75,7 +75,7 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
               <MessageSquare className="w-3.5 h-3.5" />
               <span>{reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}</span>
             </div>
-            <span className="font-medium text-[hsl(var(--uae-green))] group-hover:translate-x-1 transition-transform">
+            <span className="font-medium text-uae-green group-hover:translate-x-1 transition-transform">
               View details →
             </span>
           </div>

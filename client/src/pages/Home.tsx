@@ -97,7 +97,7 @@ export default function Home() {
         className="max-w-2xl mx-auto text-center mb-12"
       >
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 tracking-tight">
-          Find the best <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--uae-red))] to-[hsl(var(--uae-green))]">Iftar</span> spots
+          Find the best <span className="text-transparent bg-clip-text bg-gradient-to-r from-uae-red to-uae-green">Iftar</span> spots
         </h1>
         <p className="text-lg text-muted-foreground mb-8">
           Discover trusted places for Iftar in the UAE, shared by the community.
