@@ -3,7 +3,7 @@ import { usePlaces } from "@/hooks/use-places";
 import { PlaceCard } from "@/components/PlaceCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Loader2, UtensilsCrossed, Navigation } from "lucide-react";
+import { Search, Plus, Loader2, Navigation, X, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
@@ -116,25 +116,28 @@ export default function Home() {
               }}
             />
           </div>
-          <Button 
-            size="icon" 
-            className="h-12 w-12 rounded-full shrink-0 shadow-sm"
-            variant={nearbyPlaces ? "default" : "outline"}
+          <Button
+            className={`h-12 rounded-full shrink-0 shadow-sm px-5 gap-2 font-medium transition-all ${
+              nearbyPlaces
+                ? "bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+                : "bg-uae-green text-white hover:bg-uae-green/90"
+            }`}
+            variant="ghost"
             onClick={nearbyPlaces ? clearNearby : handleFindNearest}
-            title={nearbyPlaces ? "Clear nearest filter" : "Find nearest places"}
+            disabled={isFindingNearest}
           >
             {isFindingNearest ? (
-               <Loader2 className="w-5 h-5 animate-spin" />
+              <><Loader2 className="w-4 h-4 animate-spin" />Finding...</>
             ) : nearbyPlaces ? (
-               <UtensilsCrossed className="w-5 h-5" /> 
+              <><X className="w-4 h-4" />Clear</>
             ) : (
-               <Navigation className="w-5 h-5" />
+              <><Navigation className="w-4 h-4" />Near Me</>
             )}
           </Button>
         </div>
         {nearbyPlaces && (
-           <p className="text-sm text-primary mt-2 font-medium animate-in fade-in slide-in-from-top-1">
-             Showing places closest to you
+           <p className="text-sm text-uae-green mt-2 font-medium animate-in fade-in slide-in-from-top-1">
+             📍 Showing places closest to you
            </p>
         )}
       </motion.div>
@@ -162,7 +165,7 @@ export default function Home() {
         </div>
       ) : filteredPlaces.length === 0 ? (
         <div className="text-center py-20 bg-secondary/30 rounded-3xl border border-dashed border-border">
-          <UtensilsCrossed className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+          <MapPin className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-medium mb-2">No places found</h3>
           <p className="text-muted-foreground mb-6">
             {search ? "Try adjusting your search terms." : "Be the first to share an Iftar spot!"}
