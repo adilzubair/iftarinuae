@@ -61,9 +61,9 @@ export async function createApp() {
     // Apply rate limiting to all requests
     app.use(limiter);
 
-    // JSON Body Parser with rawBody capture (if needed for webhooks, else standard is fine)
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: false }));
+    // JSON Body Parser — 50kb limit prevents body-size DoS
+    app.use(express.json({ limit: "50kb" }));
+    app.use(express.urlencoded({ extended: false, limit: "50kb" }));
 
     // Logging Middleware
     app.use((req, res, next) => {

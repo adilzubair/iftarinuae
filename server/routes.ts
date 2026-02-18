@@ -24,8 +24,16 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
     const lat = parseFloat(req.query.lat as string);
     const lng = parseFloat(req.query.lng as string);
 
-    if (isNaN(lat) || isNaN(lng)) {
-      return res.status(400).json({ message: "Invalid latitude or longitude" });
+    // Validate coords are finite numbers within UAE geographic bounds
+    // UAE bounding box: ~22.6–26.5°N, ~51.5–56.5°E
+    const UAE_BOUNDS = { minLat: 22.0, maxLat: 27.0, minLng: 51.0, maxLng: 57.0 };
+    if (
+      isNaN(lat) || isNaN(lng) ||
+      !isFinite(lat) || !isFinite(lng) ||
+      lat < UAE_BOUNDS.minLat || lat > UAE_BOUNDS.maxLat ||
+      lng < UAE_BOUNDS.minLng || lng > UAE_BOUNDS.maxLng
+    ) {
+      return res.status(400).json({ message: "Invalid or out-of-range coordinates" });
     }
 
     const places = await storage.getPlaces();

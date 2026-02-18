@@ -3,10 +3,10 @@ import { usePlaces } from "@/hooks/use-places";
 import { PlaceCard } from "@/components/PlaceCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Loader2, Navigation, X, MapPin } from "lucide-react";
+import { Search, Plus, Loader2, Navigation, X, MapPin, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { SEO } from "@/components/SEO";
 import { useToast } from "@/hooks/use-toast";
 import { PlaceWithDistance } from "@shared/schema";
@@ -17,20 +17,44 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [nearbyPlaces, setNearbyPlaces] = useState<PlaceWithDistance[] | null>(null);
   const [isFindingNearest, setIsFindingNearest] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
   const { toast } = useToast();
 
-  const handleFindNearest = () => {
+  // Detect iOS (Safari/Chrome on iPhone/iPad) for tailored instructions
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  const showPermissionDeniedHelp = () => {
+    setLocationDenied(true);
+    setIsFindingNearest(false);
+  };
+
+  const handleFindNearest = async () => {
+    setLocationDenied(false);
     setIsFindingNearest(true);
-    setSearch(""); // Clear search when finding nearest
+    setSearch("");
 
     if (!navigator.geolocation) {
       toast({
-        title: "Error",
-        description: "Geolocation is not supported by your browser",
+        title: "Not supported",
+        description: "Your browser doesn't support location access.",
         variant: "destructive",
       });
       setIsFindingNearest(false);
       return;
+    }
+
+    // Proactively check permission state where the API is available
+    // (supported in Chrome/Firefox; not in Safari — we fall through to getCurrentPosition)
+    if (navigator.permissions) {
+      try {
+        const status = await navigator.permissions.query({ name: "geolocation" });
+        if (status.state === "denied") {
+          showPermissionDeniedHelp();
+          return;
+        }
+      } catch {
+        // permissions API not supported — proceed normally
+      }
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -38,16 +62,14 @@ export default function Home() {
         try {
           const { latitude, longitude } = position.coords;
           const res = await fetch(`/api/places/nearby?lat=${latitude}&lng=${longitude}`);
-          
           if (!res.ok) throw new Error("Failed to fetch nearby places");
-          
           const data = await res.json();
           setNearbyPlaces(data);
           toast({
-             title: "Location Found",
-             description: `Found ${data.length} places near you.`,
+            title: "Location found",
+            description: `Found ${data.length} places near you.`,
           });
-        } catch (err) {
+        } catch {
           toast({
             title: "Error",
             description: "Failed to find nearby places. Please try again.",
@@ -57,18 +79,19 @@ export default function Home() {
           setIsFindingNearest(false);
         }
       },
-      (error) => {
-        setIsFindingNearest(false);
-        let errorMsg = "Unable to retrieve your location";
-        if (error.code === error.PERMISSION_DENIED) {
-          errorMsg = "Location permission denied";
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          showPermissionDeniedHelp();
+        } else {
+          setIsFindingNearest(false);
+          toast({
+            title: "Location unavailable",
+            description: "Unable to get your location. Please try again.",
+            variant: "destructive",
+          });
         }
-        toast({
-          title: "Error",
-          description: errorMsg,
-          variant: "destructive",
-        });
-      }
+      },
+      { timeout: 10000, maximumAge: 60000 }
     );
   };
 
@@ -140,6 +163,56 @@ export default function Home() {
              📍 Showing places closest to you
            </p>
         )}
+
+        {/* Location permission denied — inline help card */}
+        <AnimatePresence>
+          {locationDenied && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="mt-3 bg-uae-red/5 border border-uae-red/20 rounded-2xl p-4 text-left relative"
+            >
+              <button
+                type="button"
+                onClick={() => setLocationDenied(false)}
+                className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-uae-red shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground mb-1">
+                    Location access is blocked
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Your browser previously denied location access. To enable it:
+                  </p>
+
+                  {isIOS ? (
+                    <ol className="text-xs text-foreground space-y-1 list-decimal list-inside">
+                      <li>Open the <strong>Settings</strong> app on your iPhone</li>
+                      <li>Scroll down and tap <strong>Safari</strong> (or <strong>Chrome</strong>)</li>
+                      <li>Tap <strong>Location</strong> → select <strong>Ask</strong> or <strong>Allow</strong></li>
+                      <li>Come back here and tap <strong>Near Me</strong> again</li>
+                    </ol>
+                  ) : (
+                    <ol className="text-xs text-foreground space-y-1 list-decimal list-inside">
+                      <li>Tap the <strong>lock icon</strong> in your browser's address bar</li>
+                      <li>Tap <strong>Permissions</strong> → <strong>Location</strong> → <strong>Allow</strong></li>
+                      <li>Refresh the page and tap <strong>Near Me</strong> again</li>
+                    </ol>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </motion.div>
 
       <div className="flex justify-between items-center mb-6">
