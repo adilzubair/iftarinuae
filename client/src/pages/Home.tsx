@@ -117,10 +117,10 @@ export default function Home() {
             />
           </div>
           <Button
-            className={`h-12 rounded-full shrink-0 shadow-sm px-5 gap-2 font-medium transition-all ${
+            className={`h-12 rounded-full shrink-0 shadow-sm px-5 gap-2 font-medium border transition-all ${
               nearbyPlaces
-                ? "bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
-                : "bg-uae-green text-white hover:bg-uae-green/90"
+                ? "bg-uae-red/10 text-uae-red border-uae-red/30 hover:bg-uae-red/20"
+                : "bg-background text-uae-red border-border/60 hover:bg-secondary hover:border-uae-red/40"
             }`}
             variant="ghost"
             onClick={nearbyPlaces ? clearNearby : handleFindNearest}
