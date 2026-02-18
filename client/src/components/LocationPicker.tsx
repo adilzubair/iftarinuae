@@ -427,26 +427,37 @@ export function LocationPicker({
           >
             <Search className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground z-10" />
             <Input
-              placeholder={placeholder}
+              placeholder="Type the place name or address…"
               className="pl-9 h-12 rounded-xl"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onBlur={() => {
+                const name = searchQuery.trim();
+                if (name) notifyLocation({ address: name, latitude: "", longitude: "" });
+              }}
               autoComplete="off"
             />
-            {isSearching && (
-              <Loader2 className="absolute right-3 top-3.5 w-4 h-4 animate-spin text-muted-foreground" />
-            )}
+            <p className="text-xs text-muted-foreground mt-2 px-1">
+              💡 Use the <strong>Map Pin</strong> tab to pin the exact location on the map.
+            </p>
 
-            {/* Autocomplete dropdown */}
-            <AnimatePresence>
-              {searchResults.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  className="absolute z-50 w-full mt-1 bg-background border border-border rounded-xl shadow-lg overflow-hidden"
-                >
-                  {searchResults.map((result, i) => (
+            {/* 
+              ── Search autocomplete (temporarily disabled) ──────────────────
+              The Photon + Nominatim search was returning incomplete results for
+              UAE locations. Re-enable once a better search solution is in place.
+
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-3.5 w-4 h-4 animate-spin text-muted-foreground" />
+              )}
+              <AnimatePresence>
+                {searchResults.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="absolute z-50 w-full mt-1 bg-background border border-border rounded-xl shadow-lg overflow-hidden"
+                  >
+                    {searchResults.map((result, i) => (
                       <button
                         key={i}
                         type="button"
@@ -465,9 +476,10 @@ export function LocationPicker({
                         </div>
                       </button>
                     ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            */}
           </motion.div>
         )}
 
