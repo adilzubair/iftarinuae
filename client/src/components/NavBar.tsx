@@ -22,7 +22,7 @@ export function NavBar() {
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-primary text-primary-foreground p-1.5 rounded-lg group-hover:bg-primary/90 transition-colors">
+          <div className="bg-uae-red text-white p-1.5 rounded-lg group-hover:opacity-90 transition-opacity">
             <MoonStar className="w-5 h-5" />
           </div>
           <span className="font-display font-bold text-xl tracking-tight">IftarInUAE</span>

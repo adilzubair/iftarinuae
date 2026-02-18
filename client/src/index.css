@@ -38,6 +38,10 @@
 
   /* Custom Golden Amber for stars */
   --star: 45 93% 47%;
+
+  /* UAE Flag Colours */
+  --uae-red: 354 84% 56%;    /* #EF3340 — UAE flag red */
+  --uae-green: 148 100% 30%; /* #009A44 — UAE flag green */
 }
 
 @layer base {

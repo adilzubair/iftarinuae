@@ -37,7 +37,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl border-border/60">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="bg-primary text-primary-foreground p-3 rounded-xl">
+            <div className="bg-uae-red text-white p-3 rounded-xl">
               <MoonStar className="w-8 h-8" />
             </div>
           </div>
