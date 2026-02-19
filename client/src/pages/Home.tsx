@@ -99,13 +99,76 @@ export default function Home() {
     setNearbyPlaces(null);
   };
 
+  const [selectedEmirate, setSelectedEmirate] = useState("All");
+
+  const EMIRATES = [
+    "All",
+    "Abu Dhabi",
+    "Dubai",
+    "Sharjah",
+    "Ajman",
+    "Umm Al Quwain",
+    "Ras Al Khaimah",
+    "Fujairah"
+  ];
+
   // Determine which data to display: Nearby places (if active) or filtered standard list
   const activeData = nearbyPlaces || places || [];
 
-  const filteredPlaces = activeData.filter(place => 
-    place.name.toLowerCase().includes(search.toLowerCase()) || 
-    place.location.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPlaces = activeData.filter(place => {
+    const matchesSearch = place.name.toLowerCase().includes(search.toLowerCase()) || 
+                          place.location.toLowerCase().includes(search.toLowerCase());
+    
+    // Near Me overrides Emirate filter
+    if (nearbyPlaces) return matchesSearch;
+
+    if (selectedEmirate === "All") return matchesSearch;
+    
+    // --- Hybrid Filter Logic (Text + Coordinates) ---
+
+    // 1. Text Check
+    const searchString = (place.location + " " + (place.description || "")).toLowerCase();
+    const emirateLower = selectedEmirate.toLowerCase();
+    const matchesText = searchString.includes(emirateLower);
+
+    // 2. Coordinate Check (Approximate bounding boxes for cases where text is missing)
+    let matchesCoordinates = false;
+    const lat = parseFloat(place.latitude || "0");
+    const lng = parseFloat(place.longitude || "0");
+
+    if (lat && lng) {
+      switch (selectedEmirate) {
+        case "Abu Dhabi":
+          // Broad AD check: Lat < 24.6 (City & Western Region) or Long < 54.8 (avoiding Dubai border)
+          // Sheikh Zayed Mosque is at ~24.4, 54.4
+          matchesCoordinates = lat < 24.65 || (lat < 24.9 && lng < 54.9);
+          break;
+        case "Dubai":
+          // Roughly 24.7 to 25.35, Long 54.9 to 55.6
+          // Excludes Sharjah which is mostly North/East of 25.3
+          matchesCoordinates = lat >= 24.7 && lat < 25.35 && lng >= 54.9 && lng < 55.6;
+          break;
+        case "Sharjah":
+          // Just north of Dubai: 25.35 to 25.45 (City), plus enclaves (hard to map perfectly)
+          matchesCoordinates = lat >= 25.28 && lat < 25.42 && lng >= 55.35 && lng < 55.8;
+          break;
+        case "Ajman":
+          matchesCoordinates = lat >= 25.38 && lat < 25.45 && lng >= 55.4 && lng < 55.6;
+          break;
+        case "Umm Al Quwain":
+          matchesCoordinates = lat >= 25.48 && lat < 25.65 && lng >= 55.5 && lng < 55.8;
+          break;
+        case "Ras Al Khaimah":
+          matchesCoordinates = lat >= 25.65 && lng < 56.1; // North of UAQ
+          break;
+        case "Fujairah":
+          matchesCoordinates = lng >= 56.1; // East Coast
+          break;
+      }
+    }
+    
+    return matchesSearch && (matchesText || matchesCoordinates);
+  });
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
@@ -117,7 +180,7 @@ export default function Home() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-2xl mx-auto text-center mb-12"
+        className="max-w-2xl mx-auto text-center mb-8"
       >
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 tracking-tight">
           Find the best <span className="text-transparent bg-clip-text bg-gradient-to-r from-uae-red to-uae-green">Iftar</span> spots
@@ -215,9 +278,36 @@ export default function Home() {
 
       </motion.div>
 
+      {/* Emirate Filter Tabs - hidden if "Near Me" is active */}
+      {!nearbyPlaces && (
+        <div className="mb-8 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+          <div className="flex gap-2 min-w-max">
+            {EMIRATES.map((emirate) => (
+              <button
+                key={emirate}
+                onClick={() => setSelectedEmirate(emirate)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                  selectedEmirate === emirate
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                {emirate}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold font-display">
-          {nearbyPlaces ? 'Nearest Places' : search ? 'Search Results' : 'Popular Places'}
+          {nearbyPlaces 
+            ? 'Nearest Places' 
+            : search 
+              ? 'Search Results' 
+              : selectedEmirate !== 'All' 
+                ? `${selectedEmirate} Spots` 
+                : 'All Popular Places'}
         </h2>
         <Link href="/add">
           <Button className="rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
@@ -237,17 +327,25 @@ export default function Home() {
           <p>Failed to load places. Please try again later.</p>
         </div>
       ) : filteredPlaces.length === 0 ? (
-        <div className="text-center py-20 bg-secondary/30 rounded-3xl border border-dashed border-border">
+        <div className="text-center py-20 bg-secondary/30 rounded-3xl border border-dashed border-border px-4">
           <MapPin className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-medium mb-2">No places found</h3>
-          <p className="text-muted-foreground mb-6">
-            {search ? "Try adjusting your search terms." : "Be the first to share an Iftar spot!"}
+          <h3 className="text-lg font-medium mb-2">
+            {selectedEmirate !== "All" && !search 
+              ? `No spots in ${selectedEmirate} yet` 
+              : "No places found"}
+          </h3>
+          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+            {search 
+              ? "Try adjusting your search terms." 
+              : selectedEmirate !== "All"
+                ? `Be the first to share an Iftar spot in ${selectedEmirate}! Your contribution helps the community.`
+                : "Be the first to share an Iftar spot!"}
           </p>
           {search ? (
             <Button variant="outline" onClick={() => setSearch("")}>Clear Search</Button>
           ) : (
             <Link href="/add">
-              <Button>Add a Place</Button>
+              <Button>Add a Place in {selectedEmirate !== "All" ? selectedEmirate : ""}</Button>
             </Link>
           )}
         </div>
