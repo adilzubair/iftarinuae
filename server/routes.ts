@@ -180,6 +180,34 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
   });
 
 
+  // Resolve shortened Google Maps links
+  app.get("/api/resolve-link", strictLimiter || ((req, res, next) => next()), async (req, res) => {
+    const shortUrl = req.query.url as string;
+    if (!shortUrl) {
+      return res.status(400).json({ message: "URL is required" });
+    }
+
+    // SSRF Prevention: Strictly validate that the requested URL is a Google Maps shortlink
+    try {
+      const parsedUrl = new URL(shortUrl);
+      const allowedDomains = ["goo.gl", "maps.app.goo.gl"];
+      if (!allowedDomains.includes(parsedUrl.hostname.toLowerCase())) {
+        return res.status(400).json({ message: "Invalid URL domain. Only Google Maps short links are allowed." });
+      }
+    } catch (e) {
+      return res.status(400).json({ message: "Invalid URL format." });
+    }
+
+    try {
+      const response = await fetch(shortUrl, { method: 'HEAD' });
+      const finalUrl = response.url;
+      res.json({ url: finalUrl });
+    } catch (err) {
+      console.error("Failed to resolve link:", err);
+      res.status(500).json({ message: "Failed to resolve link" });
+    }
+  });
+
   // === SEO ROUTES ===
 
   app.get("/robots.txt", (req, res) => {
