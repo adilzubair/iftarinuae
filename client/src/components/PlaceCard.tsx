@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { MapPin, Star, MessageSquare } from "lucide-react";
 import { type PlaceWithReviews } from "@shared/schema";
 import { motion } from "framer-motion";
+import { ShareButton } from "./ShareButton";
 
 interface PlaceCardProps {
   place: PlaceWithReviews;
@@ -75,9 +76,17 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
               <MessageSquare className="w-3.5 h-3.5" />
               <span>{reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}</span>
             </div>
-            <span className="font-medium text-uae-green group-hover:translate-x-1 transition-transform">
-              View details →
-            </span>
+            <div className="flex items-center gap-3">
+              <ShareButton 
+                title={place.name} 
+                text={`Check out ${place.name} in ${place.location} for Iftar!`}
+                url={`${window.location.origin}/places/${place.id}`}
+                className="hover:bg-secondary text-muted-foreground w-8 h-8 transition-opacity"
+              />
+              <span className="font-medium text-uae-green group-hover:translate-x-1 transition-transform">
+                View details →
+              </span>
+            </div>
           </div>
         </article>
       </Link>

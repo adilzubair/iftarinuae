@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SEO } from "@/components/SEO";
+import { ShareButton } from "@/components/ShareButton";
 
 export default function PlaceDetails() {
   const { id } = useParams();
@@ -108,7 +109,17 @@ export default function PlaceDetails() {
             </p>
           </div>
           
-          <ReviewDialog placeId={place.id} isAuthenticated={isAuthenticated} />
+          <div className="flex gap-3">
+            <ShareButton 
+              title={place.name}
+              text={place.description || `Check out ${place.name} in ${place.location} for Iftar.`}
+              url={typeof window !== 'undefined' ? window.location.href : ''}
+              size="lg"
+              variant="outline"
+              className="rounded-xl shadow-sm shrink-0 border-border/80 bg-background hover:bg-secondary/50"
+            />
+            <ReviewDialog placeId={place.id} isAuthenticated={isAuthenticated} />
+          </div>
         </div>
       </motion.div>
 
