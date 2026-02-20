@@ -53,7 +53,8 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      window.open(`https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank");
+                      const url = place.mapUrl || `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
+                      window.open(url, "_blank");
                     }}
                     className="text-sm line-clamp-2 text-left hover:text-primary underline underline-offset-2 decoration-dashed transition-colors"
                   >

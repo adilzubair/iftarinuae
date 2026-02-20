@@ -14,6 +14,7 @@ interface LocationData {
   address: string;
   latitude: string;
   longitude: string;
+  mapUrl?: string;
 }
 
 interface LocationPickerProps {
@@ -205,15 +206,23 @@ export function LocationPicker({
 
   // Confirmed location display
   const [confirmedAddress, setConfirmedAddress] = useState<string>("");
+  const [confirmedMapUrl, setConfirmedMapUrl] = useState<string | null>(null);
+  const [needsManualPin, setNeedsManualPin] = useState(false);
 
   // Link tab state
   const [mapLink, setMapLink] = useState("");
   const [isResolvingLink, setIsResolvingLink] = useState(false);
 
-  const notifyLocation = (data: LocationData) => {
+  // Ensure mapUrl is included in the passed data
+  const notifyLocation = (data: LocationData, overrideMapUrl?: string) => {
+    const finalMapUrl = overrideMapUrl !== undefined ? overrideMapUrl : confirmedMapUrl;
     onChange(data.address);
     setConfirmedAddress(data.address);
-    onLocationFetched?.(data);
+    
+    onLocationFetched?.({
+      ...data,
+      mapUrl: finalMapUrl || undefined
+    });
     setError(null);
   };
 
@@ -396,29 +405,27 @@ export function LocationPicker({
 
     setIsResolvingLink(true);
     setError(null);
+    setNeedsManualPin(false);
 
     try {
       let finalUrl = mapLink.trim();
 
-      // If it's a short link, resolve it via backend
-      if (finalUrl.includes('goo.gl') || finalUrl.includes('maps.app.goo.gl')) {
-        const res = await fetch(`/api/resolve-link?url=${encodeURIComponent(finalUrl)}`);
-        if (!res.ok) throw new Error("Failed to resolve shortened link.");
-        const data = await res.json();
-        finalUrl = data.url;
+      // Basic URL validation
+      try {
+        new URL(finalUrl);
+      } catch (e) {
+        throw new Error("Please enter a valid URL.");
       }
 
-      // Try to extract coordinates
+      // Try to extract coordinates locally
       let lat: number | null = null;
       let lng: number | null = null;
 
-      // Extract from /@lat,lng format
       const atMatch = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
       if (atMatch) {
         lat = parseFloat(atMatch[1]);
         lng = parseFloat(atMatch[2]);
       } else {
-        // Extract from search?query=lat,lng format
         const queryMatch = finalUrl.match(/query=(-?\d+\.\d+),(-?\d+\.\d+)/) || finalUrl.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/) || finalUrl.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
         if (queryMatch) {
           lat = parseFloat(queryMatch[1]);
@@ -426,12 +433,18 @@ export function LocationPicker({
         }
       }
 
+      setConfirmedMapUrl(finalUrl);
+
       if (lat !== null && lng !== null && isValidCoord(lat, lng)) {
         // Convert to address using reverse geocoding via existing pin drop logic
+        // We pass the finalUrl as an override to ensure state matches during the async cycle
         await handlePinDrop(lat, lng);
         setMapLink(""); // Clear the input on success
       } else {
-        throw new Error("Could not find coordinates in this link.");
+        // We have a URL but couldn't parse coordinates (e.g. shortlinks).
+        // Save the URL, clear input, and prompt for manual pin.
+        setNeedsManualPin(true);
+        setMapLink("");
       }
     } catch (err: any) {
       setError(err.message || "Invalid Google Maps link");
@@ -642,10 +655,37 @@ export function LocationPicker({
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
-            className="flex items-center gap-2 text-sm bg-primary/10 text-primary px-3 py-2.5 rounded-xl border border-primary/20"
+            className="flex flex-col gap-2 bg-primary/10 text-primary px-4 py-3 rounded-xl border border-primary/20"
           >
-            <MapPin className="w-4 h-4 shrink-0" />
-            <span className="truncate font-medium">{confirmedAddress}</span>
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="w-4 h-4 shrink-0" />
+              <span className="truncate font-medium">{confirmedAddress}</span>
+            </div>
+            {confirmedMapUrl && (
+              <div className="flex items-center gap-2 text-xs opacity-80 pl-6">
+                <LinkIcon className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Saved Link: {confirmedMapUrl}</span>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Needs Manual Pin Notice */}
+      <AnimatePresence>
+        {needsManualPin && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="flex items-start gap-2 text-sm text-yellow-800 bg-yellow-100/50 dark:text-yellow-200 dark:bg-yellow-900/30 px-4 py-3 rounded-lg border border-yellow-200/50 dark:border-yellow-900/50"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="font-medium leading-relaxed">
+              Google Maps link saved! However, we couldn't extract exact coordinates from it.
+              <br/>
+              Please use the <strong className="cursor-pointer underline decoration-dotted" onClick={() => setActiveTab("search")}>Name</strong> or <strong className="cursor-pointer underline decoration-dotted" onClick={() => setActiveTab("map")}>Map Pin</strong> tab to set the exact coordinates for the "Nearby Places" feature to work.
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

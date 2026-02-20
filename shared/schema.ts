@@ -13,8 +13,9 @@ export const places = pgTable("places", {
   name: text("name").notNull(),
   description: text("description"),
   location: text("location").notNull(),
-  latitude: text("latitude"),
-  longitude: text("longitude"),
+  latitude: text("latitude").notNull(),
+  longitude: text("longitude").notNull(),
+  mapUrl: text("map_url"), // Optional Google Maps link
   createdBy: varchar("created_by").notNull(), // Links to user ID
   createdAt: timestamp("created_at").defaultNow(),
   // Approval workflow fields
@@ -54,6 +55,8 @@ export const insertPlaceSchema = createInsertSchema(places).omit({
   approved: true,
   approvedBy: true,
   approvedAt: true,
+}).extend({
+  mapUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
 });
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({

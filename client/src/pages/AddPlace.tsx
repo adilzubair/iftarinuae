@@ -24,6 +24,7 @@ export default function AddPlace() {
       description: "",
       latitude: "",
       longitude: "",
+      mapUrl: "",
     },
   });
 
@@ -87,6 +88,7 @@ export default function AddPlace() {
                         form.setValue("location", data.address);
                         form.setValue("latitude", data.latitude);
                         form.setValue("longitude", data.longitude);
+                        form.setValue("mapUrl", data.mapUrl || "");
                       }}
                       placeholder="e.g. Downtown Dubai, near Burj Khalifa"
                     />
