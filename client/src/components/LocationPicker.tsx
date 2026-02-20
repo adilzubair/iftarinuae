@@ -206,10 +206,8 @@ export function LocationPicker({
   const [mapLng, setMapLng] = useState<number | undefined>();
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
-  // Confirmed location display
   const [confirmedAddress, setConfirmedAddress] = useState<string>("");
   const [confirmedMapUrl, setConfirmedMapUrl] = useState<string | null>(null);
-  const [needsManualPin, setNeedsManualPin] = useState(false);
 
   // Link tab state
   const [mapLink, setMapLink] = useState("");
@@ -409,7 +407,6 @@ export function LocationPicker({
       setConfirmedMapUrl(null);
       onMapUrlChange?.(null);
       setError(null);
-      setNeedsManualPin(false);
       return;
     }
 
@@ -426,12 +423,10 @@ export function LocationPicker({
       return;
     }
 
-    // Found a valid URL, instantly save it to form state
     setConfirmedMapUrl(finalUrl);
     onMapUrlChange?.(finalUrl);
 
     setError(null);
-    setNeedsManualPin(false);
     setIsResolvingLink(true);
 
     try {
@@ -457,8 +452,16 @@ export function LocationPicker({
         setMapLink(""); // Clear the input on success
       } else {
         // We have a URL but couldn't parse coordinates (e.g. shortlinks).
-        // The URL is already saved. Just prompt for manual pin.
-        setNeedsManualPin(true);
+        // The user just wants to attach the link. We auto-fill a generic 
+        // location and 0,0 for coordinates so form validation passes.
+        if (!confirmedAddress) {
+          const genericText = "Location provided via Google Maps link";
+          notifyLocation({
+            address: genericText,
+            latitude: "0",
+            longitude: "0",
+          }, finalUrl);
+        }
         setMapLink("");
       }
     } catch (err: any) {
@@ -696,25 +699,6 @@ export function LocationPicker({
                 </button>
               </div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Needs Manual Pin Notice */}
-      <AnimatePresence>
-        {needsManualPin && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="flex items-start gap-2 text-sm text-yellow-800 bg-yellow-100/50 dark:text-yellow-200 dark:bg-yellow-900/30 px-4 py-3 rounded-lg border border-yellow-200/50 dark:border-yellow-900/50"
-          >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <div className="font-medium leading-relaxed">
-              Google Maps link saved! However, we couldn't extract exact coordinates from it.
-              <br/>
-              Please use the <strong className="cursor-pointer underline decoration-dotted" onClick={() => setActiveTab("search")}>Name</strong> or <strong className="cursor-pointer underline decoration-dotted" onClick={() => setActiveTab("map")}>Map Pin</strong> tab to set the exact coordinates for the "Nearby Places" feature to work.
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
