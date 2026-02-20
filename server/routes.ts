@@ -180,6 +180,23 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
   });
 
 
+  // Resolve shortened Google Maps links
+  app.get("/api/resolve-link", strictLimiter || ((req, res, next) => next()), async (req, res) => {
+    const shortUrl = req.query.url as string;
+    if (!shortUrl) {
+      return res.status(400).json({ message: "URL is required" });
+    }
+
+    try {
+      const response = await fetch(shortUrl, { method: 'HEAD' });
+      const finalUrl = response.url;
+      res.json({ url: finalUrl });
+    } catch (err) {
+      console.error("Failed to resolve link:", err);
+      res.status(500).json({ message: "Failed to resolve link" });
+    }
+  });
+
   // === SEO ROUTES ===
 
   app.get("/robots.txt", (req, res) => {
