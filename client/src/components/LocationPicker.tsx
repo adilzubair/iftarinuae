@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2, Navigation, AlertCircle, Search, Map } from "lucide-react";
+import { MapPin, Loader2, Navigation, AlertCircle, Search, Map, Link as LinkIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +78,7 @@ interface SearchResult {
   lng: number;
 }
 
-type Tab = "search" | "map" | "gps";
+type Tab = "search" | "map" | "gps" | "link";
 
 // Photon bounding box — used as a soft bias hint, not a hard filter
 const PHOTON_BBOX = "51.5,22.6,56.4,26.1";
@@ -187,7 +187,7 @@ export function LocationPicker({
   onLocationFetched,
   placeholder = "e.g. Downtown Dubai, near Burj Khalifa",
 }: LocationPickerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("search");
+  const [activeTab, setActiveTab] = useState<Tab>("link");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -205,6 +205,10 @@ export function LocationPicker({
 
   // Confirmed location display
   const [confirmedAddress, setConfirmedAddress] = useState<string>("");
+
+  // Link tab state
+  const [mapLink, setMapLink] = useState("");
+  const [isResolvingLink, setIsResolvingLink] = useState(false);
 
   const notifyLocation = (data: LocationData) => {
     onChange(data.address);
@@ -386,23 +390,74 @@ export function LocationPicker({
     );
   };
 
+  const handleLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mapLink.trim()) return;
+
+    setIsResolvingLink(true);
+    setError(null);
+
+    try {
+      let finalUrl = mapLink.trim();
+
+      // If it's a short link, resolve it via backend
+      if (finalUrl.includes('goo.gl') || finalUrl.includes('maps.app.goo.gl')) {
+        const res = await fetch(`/api/resolve-link?url=${encodeURIComponent(finalUrl)}`);
+        if (!res.ok) throw new Error("Failed to resolve shortened link.");
+        const data = await res.json();
+        finalUrl = data.url;
+      }
+
+      // Try to extract coordinates
+      let lat: number | null = null;
+      let lng: number | null = null;
+
+      // Extract from /@lat,lng format
+      const atMatch = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (atMatch) {
+        lat = parseFloat(atMatch[1]);
+        lng = parseFloat(atMatch[2]);
+      } else {
+        // Extract from search?query=lat,lng format
+        const queryMatch = finalUrl.match(/query=(-?\d+\.\d+),(-?\d+\.\d+)/) || finalUrl.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/) || finalUrl.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (queryMatch) {
+          lat = parseFloat(queryMatch[1]);
+          lng = parseFloat(queryMatch[2]);
+        }
+      }
+
+      if (lat !== null && lng !== null && isValidCoord(lat, lng)) {
+        // Convert to address using reverse geocoding via existing pin drop logic
+        await handlePinDrop(lat, lng);
+        setMapLink(""); // Clear the input on success
+      } else {
+        throw new Error("Could not find coordinates in this link.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Invalid Google Maps link");
+    } finally {
+      setIsResolvingLink(false);
+    }
+  };
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "search", label: "Search", icon: <Search className="w-3.5 h-3.5" /> },
-    { id: "map", label: "Map Pin", icon: <Map className="w-3.5 h-3.5" /> },
+    { id: "link", label: "Map Link", icon: <LinkIcon className="w-3.5 h-3.5" /> },
     { id: "gps", label: "My Location", icon: <Navigation className="w-3.5 h-3.5" /> },
+    { id: "search", label: "Name", icon: <Search className="w-3.5 h-3.5" /> },
+    { id: "map", label: "Map Pin", icon: <Map className="w-3.5 h-3.5" /> },
   ];
 
   return (
     <div className="space-y-3">
       {/* Tab bar */}
-      <div className="flex gap-1 p-1 bg-secondary/40 rounded-xl">
+      <div className="flex gap-1 p-1 bg-secondary/40 rounded-xl overflow-x-auto scrollbar-hide snap-x">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => { setActiveTab(tab.id); setError(null); }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-all",
+              "flex-none sm:flex-1 shrink-0 snap-start flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap",
               activeTab === tab.id
                 ? "bg-background shadow-sm text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -546,6 +601,35 @@ export function LocationPicker({
             </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
               Your browser will ask for permission to access your location.
+            </p>
+          </motion.div>
+        )}
+
+        {activeTab === "link" && (
+          <motion.div
+            key="link"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+          >
+            <form onSubmit={handleLinkSubmit} className="flex gap-2">
+              <div className="relative flex-1">
+                <LinkIcon className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground z-10" />
+                <Input
+                  placeholder="Paste Google Maps link here..."
+                  className="pl-9 h-12 rounded-xl"
+                  value={mapLink}
+                  onChange={(e) => setMapLink(e.target.value)}
+                  disabled={isResolvingLink}
+                />
+              </div>
+              <Button type="submit" disabled={isResolvingLink || !mapLink.trim()} className="h-12 rounded-xl px-6">
+                {isResolvingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : "Find"}
+              </Button>
+            </form>
+            <p className="text-xs text-muted-foreground mt-2 px-1">
+              Supports full Google Maps URLs or short links (e.g., maps.app.goo.gl).
             </p>
           </motion.div>
         )}
