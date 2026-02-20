@@ -19,14 +19,16 @@ export function NavBar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-primary text-primary-foreground p-1.5 rounded-lg group-hover:bg-primary/90 transition-colors">
-            <MoonStar className="w-5 h-5" />
-          </div>
-          <span className="font-display font-bold text-xl tracking-tight">IftarInUAE</span>
-        </Link>
+    <div className="sticky top-0 z-50 w-full pt-4 px-4 pb-6 pointer-events-none">
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-transparent -z-10" />
+      <div className="max-w-5xl mx-auto pointer-events-auto">
+        <nav className="bg-background/20 backdrop-blur-xl backdrop-saturate-150 border border-white/20 dark:border-white/10 shadow-soft-lg shadow-black/5 rounded-full h-16 flex items-center justify-between px-2 md:px-4 transition-all duration-300">
+          <Link href="/" className="flex items-center gap-2.5 group ml-2">
+            <div className="bg-primary text-primary-foreground p-2 rounded-full group-hover:bg-primary/90 transition-all duration-300 shadow-sm group-hover:shadow group-hover:-translate-y-0.5">
+              <MoonStar className="w-5 h-5" />
+            </div>
+            <span className="font-display font-bold text-lg md:text-xl tracking-tight">IftarInUAE</span>
+          </Link>
 
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
@@ -67,12 +69,13 @@ export function NavBar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={handleLogin} size="sm" className="font-medium rounded-full px-6">
+            <Button onClick={handleLogin} size="sm" className="font-medium rounded-full px-6 mr-1 shadow-sm">
               Sign in
             </Button>
           )}
         </div>
+        </nav>
       </div>
-    </nav>
+    </div>
   );
 }

@@ -24,8 +24,9 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
       <Link href={`/places/${place.id}`} className="block h-full group">
-        <article className="h-full bg-card rounded-2xl border border-border/50 p-5 shadow-sm hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1 hover:border-l-[3px] hover:border-l-uae-green transition-all duration-300 flex flex-col justify-between">
-          <div>
+        <article className="h-full bg-card rounded-[20px] border border-border/40 p-6 shadow-soft hover:shadow-soft-lg hover:-translate-y-1.5 hover:border-l-[4px] hover:border-l-uae-green transition-all duration-400 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300/40 via-orange-400/40 to-red-400/40 opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
+          <div className="relative z-10">
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-display font-bold text-lg leading-tight group-hover:text-primary/80 transition-colors">
                 {place.name}
@@ -65,13 +66,13 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
             </div>
             
             {place.description && (
-              <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-4">
+              <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-4 leading-relaxed">
                 {place.description}
               </p>
             )}
           </div>
 
-          <div className="pt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="pt-4 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground relative z-10">
             <div className="flex items-center gap-1.5">
               <MessageSquare className="w-3.5 h-3.5" />
               <span>{reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}</span>

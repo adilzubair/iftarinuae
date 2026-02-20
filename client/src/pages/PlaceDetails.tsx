@@ -72,13 +72,13 @@ export default function PlaceDetails() {
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card rounded-3xl border border-border/60 shadow-sm p-6 md:p-10 mb-10 relative overflow-hidden"
+        className="bg-card rounded-[32px] border border-border/40 shadow-soft-lg p-8 md:p-12 mb-12 relative overflow-hidden"
       >
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-300 via-amber-400 to-yellow-300 opacity-50" />
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-300/60 via-orange-400/60 to-red-400/60" />
         
-        <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-8">
           <div className="flex-1">
-            <h1 className="text-3xl md:text-4xl font-display font-bold mb-4 text-balance">{place.name}</h1>
+            <h1 className="text-3xl md:text-5xl font-display font-bold mb-5 text-balance tracking-tight text-foreground/95">{place.name}</h1>
             
             <div className="flex items-center gap-4 text-muted-foreground mb-6 flex-wrap">
               {place.latitude && place.longitude ? (
@@ -139,7 +139,7 @@ export default function PlaceDetails() {
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
-                className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm"
+                className="bg-card p-8 rounded-[24px] border border-border/30 shadow-soft"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
