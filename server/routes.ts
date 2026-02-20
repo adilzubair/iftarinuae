@@ -179,6 +179,75 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
     res.json(stats);
   });
 
+  // === IMAGE SUBMISSION ROUTES ===
+
+  // Submit a photo for an existing place (authenticated users)
+  app.post("/api/places/:id/images", isAuthenticated, async (req, res) => {
+    const placeId = req.params.id as string;
+    const userId = req.user!.id;
+    const { imageUrl } = req.body;
+
+    if (!imageUrl || typeof imageUrl !== "string") {
+      return res.status(400).json({ message: "imageUrl is required" });
+    }
+
+    // Only accept images hosted on Cloudinary
+    try {
+      const { hostname } = new URL(imageUrl);
+      if (hostname !== "res.cloudinary.com") {
+        return res.status(400).json({ message: "Images must be uploaded via the app's upload tool." });
+      }
+    } catch {
+      return res.status(400).json({ message: "Invalid image URL." });
+    }
+
+    // Verify the place exists
+    const place = await storage.getPlace(placeId);
+    if (!place) {
+      return res.status(404).json({ message: "Place not found" });
+    }
+
+    const submission = await storage.submitPlaceImage(placeId, userId, imageUrl);
+    res.status(201).json(submission);
+  });
+
+  // List pending image submissions (admin only)
+  app.get("/api/admin/images/pending", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const submissions = await storage.getPendingImageSubmissions();
+      res.json(submissions);
+    } catch (err) {
+      console.error("[admin/images/pending] error:", err);
+      res.status(500).json({ message: "Failed to fetch image submissions" });
+    }
+  });
+
+  // Approve an image submission (admin only)
+  app.patch("/api/admin/images/:id/approve", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const submissionId = req.params.id as string;
+      const adminId = req.user!.id;
+      const submission = await storage.approveImageSubmission(submissionId, adminId);
+      if (!submission) return res.status(404).json({ message: "Submission not found" });
+      res.json(submission);
+    } catch (err) {
+      console.error("[admin/images/approve] error:", err);
+      res.status(500).json({ message: "Failed to approve image" });
+    }
+  });
+
+  // Reject an image submission (admin only)
+  app.delete("/api/admin/images/:id/reject", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const submissionId = req.params.id as string;
+      const deleted = await storage.rejectImageSubmission(submissionId);
+      if (!deleted) return res.status(404).json({ message: "Submission not found" });
+      res.json({ message: "Image submission rejected" });
+    } catch (err) {
+      console.error("[admin/images/reject] error:", err);
+      res.status(500).json({ message: "Failed to reject image" });
+    }
+  });
 
   // Resolve shortened Google Maps links
   app.get("/api/resolve-link", strictLimiter || ((req, res, next) => next()), async (req, res) => {

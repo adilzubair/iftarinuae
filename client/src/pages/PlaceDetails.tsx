@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/StarRating";
-import { Loader2, MapPin, ArrowLeft, Calendar, User, Star } from "lucide-react";
+import { Loader2, MapPin, ArrowLeft, Calendar, User, Star, Camera } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -18,18 +18,60 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SEO } from "@/components/SEO";
 import { ShareButton } from "@/components/ShareButton";
+import { CloudinaryUpload } from "@/components/CloudinaryUpload";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PlaceDetails() {
   const { id } = useParams();
-  const { data: place, isLoading, error } = usePlace(id!);
-  const { isAuthenticated } = useAuth();
-  
+  const { data: place, isLoading, error, refetch } = usePlace(id!);
+  const { isAuthenticated, getIdToken } = useAuth();
+  const { toast } = useToast();
+
+  // Photo submission state
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<[string | null, string | null, string | null]>([null, null, null]);
+  const [submittingPhoto, setSubmittingPhoto] = useState(false);
+
+  const handlePhotoSubmit = async () => {
+    const url = pendingPhoto[0]; // Only single-photo submission per request
+    if (!url) return;
+
+    setSubmittingPhoto(true);
+    try {
+      const token = await getIdToken();
+      const res = await fetch(`/api/places/${id}/images`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ imageUrl: url }),
+      });
+
+      if (!res.ok) throw new Error("Submission failed");
+
+      toast({
+        title: "Photo submitted! 📸",
+        description: "It will appear after admin approval. Thank you!",
+      });
+      setPhotoDialogOpen(false);
+      setPendingPhoto([null, null, null]);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Could not submit your photo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingPhoto(false);
+    }
+  };
   if (isLoading) return (
     <div className="h-[80vh] flex items-center justify-center">
       <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
     </div>
   );
-  
+
   if (error || !place) return (
     <div className="container mx-auto px-4 py-20 text-center">
       <h2 className="text-2xl font-bold mb-4">Place not found</h2>
@@ -43,7 +85,7 @@ export default function PlaceDetails() {
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24 max-w-4xl">
-      <SEO 
+      <SEO
         title={place.name}
         description={place.description || `Check out ${place.name} in ${place.location} for Iftar.`}
         schema={{
@@ -69,7 +111,7 @@ export default function PlaceDetails() {
         Back to places
       </Link>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-card rounded-[32px] border border-border/40 shadow-soft-lg p-8 md:p-12 mb-12 relative overflow-hidden"
@@ -108,9 +150,9 @@ export default function PlaceDetails() {
               {place.description || "No description provided."}
             </p>
           </div>
-          
+
           <div className="flex gap-3">
-            <ShareButton 
+            <ShareButton
               title={place.name}
               text={place.description || `Check out ${place.name} in ${place.location} for Iftar.`}
               url={typeof window !== 'undefined' ? window.location.href : ''}
@@ -123,9 +165,91 @@ export default function PlaceDetails() {
         </div>
       </motion.div>
 
+      {/* ── Photo Gallery + Add Photo ── */}
+      <div className="mb-8 space-y-3">
+        {(place.imageUrl1 || place.imageUrl2 || place.imageUrl3) ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex gap-2 overflow-x-auto pb-1"
+          >
+            {[place.imageUrl1, place.imageUrl2, place.imageUrl3]
+              .filter(Boolean)
+              .map((url, i) => (
+                <a
+                  key={i}
+                  href={url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 w-28 h-28 rounded-xl overflow-hidden bg-muted block border border-border/40 hover:border-primary/40 transition-all hover:scale-105 duration-300 shadow-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <img
+                    src={url!}
+                    alt={`${place.name} photo ${i + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </a>
+              ))}
+          </motion.div>
+        ) : (
+          !isAuthenticated && (
+            <p className="text-xs text-muted-foreground italic">No photos yet.</p>
+          )
+        )}
+
+        {/* Add a Photo button — logged-in users only, hidden when 3 photos already exist */}
+        {isAuthenticated && (() => {
+          const filledSlots = [place.imageUrl1, place.imageUrl2, place.imageUrl3].filter(Boolean).length;
+          const remainingSlots = 3 - filledSlots;
+          if (remainingSlots <= 0) return null;
+
+          return (
+            <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="rounded-xl">
+                  <Camera className="w-4 h-4 mr-2" />
+                  Add a Photo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md rounded-2xl border-0 shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle className="font-display text-xl">Submit a Photo</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground -mt-2">
+                  Your photo will be reviewed by an admin before appearing publicly.
+                  {remainingSlots < 3 && (
+                    <span className="block mt-1 font-medium text-foreground">
+                      {remainingSlots} photo slot{remainingSlots > 1 ? "s" : ""} remaining for this place.
+                    </span>
+                  )}
+                </p>
+                <CloudinaryUpload
+                  imageUrls={pendingPhoto}
+                  onChange={setPendingPhoto}
+                  maxSlots={remainingSlots}
+                  className="mt-2"
+                />
+                <Button
+                  onClick={handlePhotoSubmit}
+                  disabled={!pendingPhoto[0] || submittingPhoto}
+                  className="w-full rounded-xl mt-2"
+                >
+                  {submittingPhoto ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
+                  ) : "Submit for Review"}
+                </Button>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
+      </div>
+
       <div className="space-y-8">
         <h2 className="text-2xl font-display font-bold">Reviews</h2>
-        
+
         {place.reviews.length === 0 ? (
           <div className="text-center py-12 bg-secondary/20 rounded-2xl border border-dashed border-border/60">
             <p className="text-muted-foreground mb-4">No reviews yet. Be the first to share your experience!</p>
@@ -134,7 +258,7 @@ export default function PlaceDetails() {
         ) : (
           <div className="grid gap-6">
             {place.reviews.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()).map((review) => (
-              <motion.div 
+              <motion.div
                 key={review.id}
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -158,7 +282,7 @@ export default function PlaceDetails() {
                   </div>
                   <StarRating value={review.rating} readOnly size="sm" />
                 </div>
-                
+
                 {review.comment && (
                   <p className="text-muted-foreground leading-relaxed pl-13">
                     {review.comment}
@@ -182,7 +306,7 @@ function ReviewDialog({ placeId, isAuthenticated, label = "Write a Review" }: { 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) return;
-    
+
     await createReview.mutateAsync({
       rating,
       comment,
@@ -223,19 +347,19 @@ function ReviewDialog({ placeId, isAuthenticated, label = "Write a Review" }: { 
               {rating === 5 && "Excellent"}
             </span>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium ml-1">Comments (optional)</label>
-            <Textarea 
-              placeholder="What did you like about the food or atmosphere?" 
+            <Textarea
+              placeholder="What did you like about the food or atmosphere?"
               className="resize-none min-h-[120px] rounded-xl bg-secondary/20 border-border focus:bg-background transition-colors"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
             />
           </div>
-          
-          <Button 
-            type="submit" 
+
+          <Button
+            type="submit"
             className="w-full h-12 rounded-xl text-base font-semibold"
             disabled={rating === 0 || createReview.isPending}
           >

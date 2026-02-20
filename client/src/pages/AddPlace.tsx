@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPlaceSchema, type CreatePlaceRequest } from "@shared/schema";
@@ -11,11 +12,15 @@ import { ArrowLeft, Loader2, Store } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { LocationPicker } from "@/components/LocationPicker";
+import { CloudinaryUpload } from "@/components/CloudinaryUpload";
 
 export default function AddPlace() {
   const [, setLocation] = useLocation();
   const createPlace = useCreatePlace();
-  
+
+  // Manage up to 3 image URLs independently of react-hook-form
+  const [imageUrls, setImageUrls] = useState<[string | null, string | null, string | null]>([null, null, null]);
+
   const form = useForm<CreatePlaceRequest>({
     resolver: zodResolver(insertPlaceSchema),
     defaultValues: {
@@ -24,12 +29,21 @@ export default function AddPlace() {
       description: "",
       latitude: "",
       longitude: "",
+      imageUrl1: null,
+      imageUrl2: null,
+      imageUrl3: null,
     },
   });
 
   const onSubmit = async (data: CreatePlaceRequest) => {
     try {
-      await createPlace.mutateAsync(data);
+      // Merge the image URLs (from Cloudinary state) into the form data
+      await createPlace.mutateAsync({
+        ...data,
+        imageUrl1: imageUrls[0] ?? null,
+        imageUrl2: imageUrls[1] ?? null,
+        imageUrl3: imageUrls[2] ?? null,
+      });
       setLocation("/");
     } catch (error) {
       // Error is handled by mutation onError
@@ -55,7 +69,7 @@ export default function AddPlace() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 bg-card p-6 md:p-8 rounded-3xl border border-border/50 shadow-sm">
-            
+
             <FormField
               control={form.control}
               name="name"
@@ -103,10 +117,10 @@ export default function AddPlace() {
                 <FormItem>
                   <FormLabel className="text-base">Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="What kind of food do they serve? Is it a buffet or set menu?" 
-                      className="min-h-[140px] resize-none rounded-xl" 
-                      {...field} 
+                    <Textarea
+                      placeholder="What kind of food do they serve? Is it a buffet or set menu?"
+                      className="min-h-[140px] resize-none rounded-xl"
+                      {...field}
                       value={field.value || ""}
                     />
                   </FormControl>
@@ -115,8 +129,16 @@ export default function AddPlace() {
               )}
             />
 
-            <Button 
-              type="submit" 
+            {/* ── Image Upload Section ── */}
+            <div className="space-y-2">
+              <p className="text-base font-medium leading-none">
+                Photos <span className="text-sm font-normal text-muted-foreground">(Optional)</span>
+              </p>
+              <CloudinaryUpload imageUrls={imageUrls} onChange={setImageUrls} />
+            </div>
+
+            <Button
+              type="submit"
               className="w-full h-14 text-lg font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30"
               disabled={createPlace.isPending}
             >

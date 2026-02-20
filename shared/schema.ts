@@ -17,10 +17,28 @@ export const places = pgTable("places", {
   longitude: text("longitude"),
   createdBy: varchar("created_by").notNull(), // Links to user ID
   createdAt: timestamp("created_at").defaultNow(),
+  // Images (up to 3 Cloudinary URLs per place)
+  imageUrl1: text("image_url_1"),
+  imageUrl2: text("image_url_2"),
+  imageUrl3: text("image_url_3"),
   // Approval workflow fields
   approved: boolean("approved").default(false).notNull(),
   approvedBy: varchar("approved_by"), // Links to admin user ID (nullable)
   approvedAt: timestamp("approved_at"), // Nullable
+});
+
+// === PLACE IMAGE SUBMISSIONS (pending admin approval) ===
+
+export const placeImageSubmissions = pgTable("place_image_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  placeId: uuid("place_id").notNull().references(() => places.id, { onDelete: "cascade" }),
+  imageUrl: text("image_url").notNull(),
+  submittedBy: varchar("submitted_by").notNull(), // user ID
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  // Approval workflow
+  approved: boolean("approved").default(false).notNull(),
+  approvedBy: varchar("approved_by"), // admin user ID (nullable)
+  approvedAt: timestamp("approved_at"), // nullable
 });
 
 export const reviews = pgTable("reviews", {
@@ -36,6 +54,14 @@ export const reviews = pgTable("reviews", {
 
 export const placesRelations = relations(places, ({ many }) => ({
   reviews: many(reviews),
+  imageSubmissions: many(placeImageSubmissions),
+}));
+
+export const placeImageSubmissionsRelations = relations(placeImageSubmissions, ({ one }) => ({
+  place: one(places, {
+    fields: [placeImageSubmissions.placeId],
+    references: [places.id],
+  }),
 }));
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
@@ -54,6 +80,11 @@ export const insertPlaceSchema = createInsertSchema(places).omit({
   approved: true,
   approvedBy: true,
   approvedAt: true,
+}).extend({
+  // All three image fields are optional Cloudinary URLs
+  imageUrl1: z.string().url().nullable().optional(),
+  imageUrl2: z.string().url().nullable().optional(),
+  imageUrl3: z.string().url().nullable().optional(),
 });
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({
@@ -65,10 +96,29 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
   rating: z.number().min(1).max(5),
 });
 
+export const insertPlaceImageSubmissionSchema = createInsertSchema(placeImageSubmissions).omit({
+  id: true,
+  submittedBy: true,
+  submittedAt: true,
+  approved: true,
+  approvedBy: true,
+  approvedAt: true,
+}).extend({
+  imageUrl: z.string().url(),
+});
+
 // === EXPLICIT API CONTRACT TYPES ===
 
 export type Place = typeof places.$inferSelect;
 export type InsertPlace = z.infer<typeof insertPlaceSchema>;
+
+export type PlaceImageSubmission = typeof placeImageSubmissions.$inferSelect;
+export type InsertPlaceImageSubmission = z.infer<typeof insertPlaceImageSubmissionSchema>;
+
+export type PlaceImageSubmissionWithPlace = PlaceImageSubmission & {
+  placeName?: string;
+  placeLocation?: string;
+};
 
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;

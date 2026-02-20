@@ -10,12 +10,12 @@ interface PlaceCardProps {
 }
 
 export function PlaceCard({ place, index }: PlaceCardProps) {
-  // Calculate stats if backend doesn't provide them
   const avgRating = place.averageRating || (place.reviews.length > 0
     ? place.reviews.reduce((sum, r) => sum + r.rating, 0) / place.reviews.length
     : 0);
-  
+
   const reviewCount = place.reviewCount || place.reviews.length;
+  const hasPhotos = !!(place.imageUrl1 || place.imageUrl2 || place.imageUrl3);
 
   return (
     <motion.div
@@ -36,32 +36,30 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
                   <Star className="w-3.5 h-3.5 fill-[hsl(var(--star))] text-[hsl(var(--star))]" />
                   <span className="text-xs font-semibold">{avgRating.toFixed(1)}</span>
                 </div>
+              </div>
+
+              {place.description && (
+                <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-4">
+                  {place.description}
+                </p>
               )}
             </div>
-            
-            <div className="flex items-start gap-1.5 text-muted-foreground mb-4">
-              <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-uae-red" />
-              <div className="flex flex-col">
-                {typeof (place as any).distance === 'number' && (
-                  <span className="text-xs font-semibold text-primary mb-0.5">
-                    {((place as any).distance as number).toFixed(1)} km away
-                  </span>
-                )}
-                {place.latitude && place.longitude ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      window.open(`https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank");
-                    }}
-                    className="text-sm line-clamp-2 text-left hover:text-primary underline underline-offset-2 decoration-dashed transition-colors"
-                  >
-                    {place.location}
-                  </button>
-                ) : (
-                  <p className="text-sm line-clamp-2">{place.location}</p>
-                )}
+
+            <div className="pt-4 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>{reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <ShareButton
+                  title={place.name}
+                  text={`Check out ${place.name} in ${place.location} for Iftar!`}
+                  url={`${window.location.origin}/places/${place.id}`}
+                  className="hover:bg-secondary text-muted-foreground w-8 h-8 transition-opacity"
+                />
+                <span className="font-medium text-uae-green group-hover:translate-x-1 transition-transform">
+                  {hasPhotos ? "View details & photos →" : "View details →"}
+                </span>
               </div>
             </div>
             

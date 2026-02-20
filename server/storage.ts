@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { places, reviews, type InsertPlace, type InsertReview, type Place, type Review, type PlaceWithReviews } from "../shared/schema";
+import { places, reviews, placeImageSubmissions, type InsertPlace, type InsertReview, type Place, type Review, type PlaceWithReviews, type PlaceImageSubmission, type PlaceImageSubmissionWithPlace } from "../shared/schema";
 import { eq, sql, and, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -8,6 +8,11 @@ export interface IStorage {
   createPlace(place: InsertPlace): Promise<Place>;
   createReview(review: InsertReview): Promise<Review>;
   hasUserReviewedPlace(userId: string, placeId: string): Promise<boolean>;
+  // Image submission
+  submitPlaceImage(placeId: string, userId: string, imageUrl: string): Promise<PlaceImageSubmission>;
+  getPendingImageSubmissions(): Promise<PlaceImageSubmissionWithPlace[]>;
+  approveImageSubmission(submissionId: string, adminId: string): Promise<PlaceImageSubmission | undefined>;
+  rejectImageSubmission(submissionId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -125,12 +130,13 @@ export class DatabaseStorage implements IStorage {
     approvedPlaces: number;
     pendingPlaces: number;
     approvedToday: number;
+    pendingImages: number;
   }> {
     const allPlacesResult = await db.select().from(places);
     const approvedPlacesResult = await db.select().from(places).where(eq(places.approved, true));
     const pendingPlacesResult = await db.select().from(places).where(eq(places.approved, false));
+    const pendingImagesResult = await db.select().from(placeImageSubmissions).where(eq(placeImageSubmissions.approved, false));
 
-    // Get places approved today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -149,7 +155,74 @@ export class DatabaseStorage implements IStorage {
       approvedPlaces: approvedPlacesResult.length,
       pendingPlaces: pendingPlacesResult.length,
       approvedToday: approvedTodayResult.length,
+      pendingImages: pendingImagesResult.length,
     };
+  }
+
+  // === IMAGE SUBMISSION METHODS ===
+
+  async submitPlaceImage(placeId: string, userId: string, imageUrl: string): Promise<PlaceImageSubmission> {
+    const [submission] = await db
+      .insert(placeImageSubmissions)
+      .values({ placeId, submittedBy: userId, imageUrl } as any)
+      .returning();
+    return submission;
+  }
+
+  async getPendingImageSubmissions(): Promise<PlaceImageSubmissionWithPlace[]> {
+    const submissions = await db
+      .select()
+      .from(placeImageSubmissions)
+      .where(eq(placeImageSubmissions.approved, false))
+      .orderBy(desc(placeImageSubmissions.submittedAt));
+
+    // Enrich with place name/location
+    const enriched = await Promise.all(
+      submissions.map(async (sub) => {
+        const [place] = await db.select().from(places).where(eq(places.id, sub.placeId));
+        return {
+          ...sub,
+          placeName: place?.name,
+          placeLocation: place?.location,
+        };
+      })
+    );
+
+    return enriched;
+  }
+
+  async approveImageSubmission(submissionId: string, adminId: string): Promise<PlaceImageSubmission | undefined> {
+    // 1. Mark submission as approved
+    const [submission] = await db
+      .update(placeImageSubmissions)
+      .set({ approved: true, approvedBy: adminId, approvedAt: new Date() })
+      .where(eq(placeImageSubmissions.id, submissionId))
+      .returning();
+
+    if (!submission) return undefined;
+
+    // 2. Copy the URL into the next free imageUrl slot on the parent place
+    const [place] = await db.select().from(places).where(eq(places.id, submission.placeId));
+    if (place) {
+      if (!place.imageUrl1) {
+        await db.update(places).set({ imageUrl1: submission.imageUrl }).where(eq(places.id, place.id));
+      } else if (!place.imageUrl2) {
+        await db.update(places).set({ imageUrl2: submission.imageUrl }).where(eq(places.id, place.id));
+      } else if (!place.imageUrl3) {
+        await db.update(places).set({ imageUrl3: submission.imageUrl }).where(eq(places.id, place.id));
+      }
+      // If all 3 slots are full, the image is approved but not displayed (graceful degradation)
+    }
+
+    return submission;
+  }
+
+  async rejectImageSubmission(submissionId: string): Promise<boolean> {
+    const result = await db
+      .delete(placeImageSubmissions)
+      .where(eq(placeImageSubmissions.id, submissionId))
+      .returning();
+    return result.length > 0;
   }
 }
 
