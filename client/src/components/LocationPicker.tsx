@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2, Navigation, AlertCircle, Search, Map, Link as LinkIcon } from "lucide-react";
+import { MapPin, Loader2, Navigation, AlertCircle, Search, Map, Link as LinkIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ interface LocationPickerProps {
   value: string;
   onChange: (location: string) => void;
   onLocationFetched?: (data: LocationData) => void;
+  onMapUrlChange?: (mapUrl: string | null) => void;
   placeholder?: string;
 }
 
@@ -186,6 +187,7 @@ export function LocationPicker({
   value,
   onChange,
   onLocationFetched,
+  onMapUrlChange,
   placeholder = "e.g. Downtown Dubai, near Burj Khalifa",
 }: LocationPickerProps) {
   const [activeTab, setActiveTab] = useState<Tab>("link");
@@ -303,7 +305,7 @@ export function LocationPicker({
   };
 
   // ── Map tab: Nominatim reverse geocode on pin drop ───────────────────────
-  const handlePinDrop = async (lat: number, lng: number) => {
+  const handlePinDrop = async (lat: number, lng: number, overrideMapUrl?: string) => {
     setMapLat(lat);
     setMapLng(lng);
     setIsReverseGeocoding(true);
@@ -325,14 +327,14 @@ export function LocationPicker({
       if (data.address.state) parts.push(data.address.state);
 
       const address = sanitiseAddress(parts.length > 0 ? parts.join(", ") : data.display_name);
-      notifyLocation({ address, latitude: lat.toString(), longitude: lng.toString() });
+      notifyLocation({ address, latitude: lat.toString(), longitude: lng.toString() }, overrideMapUrl);
     } catch {
       // Still save coords even if reverse geocode fails — coords are already validated
       notifyLocation({
         address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
         latitude: lat.toString(),
         longitude: lng.toString(),
-      });
+      }, overrideMapUrl);
     } finally {
       setIsReverseGeocoding(false);
     }
@@ -434,11 +436,12 @@ export function LocationPicker({
       }
 
       setConfirmedMapUrl(finalUrl);
+      onMapUrlChange?.(finalUrl);
 
       if (lat !== null && lng !== null && isValidCoord(lat, lng)) {
         // Convert to address using reverse geocoding via existing pin drop logic
         // We pass the finalUrl as an override to ensure state matches during the async cycle
-        await handlePinDrop(lat, lng);
+        await handlePinDrop(lat, lng, finalUrl);
         setMapLink(""); // Clear the input on success
       } else {
         // We have a URL but couldn't parse coordinates (e.g. shortlinks).
@@ -662,9 +665,23 @@ export function LocationPicker({
               <span className="truncate font-medium">{confirmedAddress}</span>
             </div>
             {confirmedMapUrl && (
-              <div className="flex items-center gap-2 text-xs opacity-80 pl-6">
-                <LinkIcon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">Saved Link: {confirmedMapUrl}</span>
+              <div className="flex items-center justify-between mt-1 text-xs opacity-80 pl-6 bg-background/50 rounded-lg p-1.5 pr-2">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <LinkIcon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate" title={confirmedMapUrl}>Link: {confirmedMapUrl}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmedMapUrl(null);
+                    onMapUrlChange?.(null);
+                  }}
+                  className="ml-2 hover:bg-destructive/10 text-destructive/80 hover:text-destructive p-1 rounded-full flex-shrink-0 transition-colors"
+                  title="Remove saved link"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
           </motion.div>

@@ -88,7 +88,12 @@ export default function AddPlace() {
                         form.setValue("location", data.address);
                         form.setValue("latitude", data.latitude);
                         form.setValue("longitude", data.longitude);
-                        form.setValue("mapUrl", data.mapUrl || "");
+                        if (data.mapUrl) {
+                          form.setValue("mapUrl", data.mapUrl);
+                        }
+                      }}
+                      onMapUrlChange={(url) => {
+                        form.setValue("mapUrl", url || "");
                       }}
                       placeholder="e.g. Downtown Dubai, near Burj Khalifa"
                     />
