@@ -401,24 +401,40 @@ export function LocationPicker({
     );
   };
 
-  const handleLinkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mapLink.trim()) return;
+  const handleMapLinkChange = async (value: string) => {
+    setMapLink(value);
+    const finalUrl = value.trim();
 
-    setIsResolvingLink(true);
+    if (!finalUrl) {
+      setConfirmedMapUrl(null);
+      onMapUrlChange?.(null);
+      setError(null);
+      setNeedsManualPin(false);
+      return;
+    }
+
+    // Attempt basic validation silently
+    let isValidUrl = true;
+    try {
+      new URL(finalUrl);
+    } catch {
+      isValidUrl = false;
+    }
+
+    if (!isValidUrl) {
+      // Don't show an error aggressively while typing, just clear states
+      return;
+    }
+
+    // Found a valid URL, instantly save it to form state
+    setConfirmedMapUrl(finalUrl);
+    onMapUrlChange?.(finalUrl);
+
     setError(null);
     setNeedsManualPin(false);
+    setIsResolvingLink(true);
 
     try {
-      let finalUrl = mapLink.trim();
-
-      // Basic URL validation
-      try {
-        new URL(finalUrl);
-      } catch (e) {
-        throw new Error("Please enter a valid URL.");
-      }
-
       // Try to extract coordinates locally
       let lat: number | null = null;
       let lng: number | null = null;
@@ -435,22 +451,19 @@ export function LocationPicker({
         }
       }
 
-      setConfirmedMapUrl(finalUrl);
-      onMapUrlChange?.(finalUrl);
-
       if (lat !== null && lng !== null && isValidCoord(lat, lng)) {
-        // Convert to address using reverse geocoding via existing pin drop logic
-        // We pass the finalUrl as an override to ensure state matches during the async cycle
+        // Convert to address using reverse geocoding
         await handlePinDrop(lat, lng, finalUrl);
         setMapLink(""); // Clear the input on success
       } else {
         // We have a URL but couldn't parse coordinates (e.g. shortlinks).
-        // Save the URL, clear input, and prompt for manual pin.
+        // The URL is already saved. Just prompt for manual pin.
         setNeedsManualPin(true);
         setMapLink("");
       }
     } catch (err: any) {
-      setError(err.message || "Invalid Google Maps link");
+      console.error(err);
+      setError("Invalid Google Maps link");
     } finally {
       setIsResolvingLink(false);
     }
@@ -629,21 +642,20 @@ export function LocationPicker({
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
           >
-            <form onSubmit={handleLinkSubmit} className="flex gap-2">
-              <div className="relative flex-1">
-                <LinkIcon className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground z-10" />
-                <Input
-                  placeholder="Paste Google Maps link here..."
-                  className="pl-9 h-12 rounded-xl"
-                  value={mapLink}
-                  onChange={(e) => setMapLink(e.target.value)}
-                  disabled={isResolvingLink}
-                />
-              </div>
-              <Button type="submit" disabled={isResolvingLink || !mapLink.trim()} className="h-12 rounded-xl px-6">
-                {isResolvingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : "Find"}
-              </Button>
-            </form>
+            <div className="relative">
+              <LinkIcon className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground z-10" />
+              <Input
+                placeholder="Paste Google Maps link here..."
+                className="pl-9 h-12 rounded-xl"
+                value={mapLink}
+                onChange={(e) => handleMapLinkChange(e.target.value)}
+                disabled={isResolvingLink}
+                autoComplete="off"
+              />
+              {isResolvingLink && (
+                <Loader2 className="absolute right-3 top-3.5 w-4 h-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-2 px-1">
               Supports full Google Maps URLs or short links (e.g., maps.app.goo.gl).
             </p>
