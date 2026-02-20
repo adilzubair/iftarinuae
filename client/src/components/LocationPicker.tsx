@@ -449,20 +449,16 @@ export function LocationPicker({
       if (lat !== null && lng !== null && isValidCoord(lat, lng)) {
         // Convert to address using reverse geocoding
         await handlePinDrop(lat, lng, finalUrl);
-        setMapLink(""); // Clear the input on success
       } else {
-        // We have a URL but couldn't parse coordinates (e.g. shortlinks).
-        // The user just wants to attach the link. We auto-fill a generic 
-        // location and 0,0 for coordinates so form validation passes.
+        // We have a Google Maps link but couldn't parse coordinates (e.g. shortlinks)
+        // Set coordinates to "0" and clear address, prompting the user to type the Place Name manually
         if (!confirmedAddress) {
-          const genericText = "Location provided via Google Maps link";
           notifyLocation({
-            address: genericText,
+            address: "", // Force them to type a location/name
             latitude: "0",
             longitude: "0",
           }, finalUrl);
         }
-        setMapLink("");
       }
     } catch (err: any) {
       console.error(err);
@@ -668,19 +664,21 @@ export function LocationPicker({
 
       {/* Confirmed location pill */}
       <AnimatePresence>
-        {confirmedAddress && (
+        {(confirmedAddress || confirmedMapUrl) && (
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
             className="flex flex-col gap-2 bg-primary/10 text-primary px-4 py-3 rounded-xl border border-primary/20"
           >
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 shrink-0" />
-              <span className="truncate font-medium">{confirmedAddress}</span>
-            </div>
+            {confirmedAddress ? (
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span className="truncate font-medium">{confirmedAddress}</span>
+              </div>
+            ) : null}
             {confirmedMapUrl && (
-              <div className="flex items-center justify-between mt-1 text-xs opacity-80 pl-6 bg-background/50 rounded-lg p-1.5 pr-2">
+              <div className={`flex items-center justify-between mt-1 text-xs opacity-80 bg-background/50 rounded-lg p-1.5 pr-2 ${confirmedAddress ? "pl-6" : "pl-2"}`}>
                 <div className="flex items-center gap-2 overflow-hidden">
                   <LinkIcon className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate" title={confirmedMapUrl}>Link: {confirmedMapUrl}</span>
@@ -690,6 +688,7 @@ export function LocationPicker({
                   onClick={(e) => {
                     e.stopPropagation();
                     setConfirmedMapUrl(null);
+                    setMapLink("");
                     onMapUrlChange?.(null);
                   }}
                   className="ml-2 hover:bg-destructive/10 text-destructive/80 hover:text-destructive p-1 rounded-full flex-shrink-0 transition-colors"

@@ -11,10 +11,12 @@ import { ArrowLeft, Loader2, Store } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { LocationPicker } from "@/components/LocationPicker";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AddPlace() {
   const [, setLocation] = useLocation();
   const createPlace = useCreatePlace();
+  const { toast } = useToast();
   
   const form = useForm<CreatePlaceRequest>({
     resolver: zodResolver(insertPlaceSchema),
@@ -30,11 +32,22 @@ export default function AddPlace() {
 
   const onSubmit = async (data: CreatePlaceRequest) => {
     try {
+      if (!data.location || data.location.trim() === "") {
+        data.location = data.name;
+      }
       await createPlace.mutateAsync(data);
       setLocation("/");
     } catch (error) {
       // Error is handled by mutation onError
     }
+  };
+
+  const onError = (errors: any) => {
+    toast({
+      title: "Validation Error",
+      description: JSON.stringify(errors, null, 2),
+      variant: "destructive",
+    });
   };
 
   return (
@@ -55,7 +68,7 @@ export default function AddPlace() {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 bg-card p-6 md:p-8 rounded-3xl border border-border/50 shadow-sm">
+          <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8 bg-card p-6 md:p-8 rounded-3xl border border-border/50 shadow-sm">
             
             <FormField
               control={form.control}
@@ -85,7 +98,8 @@ export default function AddPlace() {
                       value={field.value}
                       onChange={field.onChange}
                       onLocationFetched={(data) => {
-                        form.setValue("location", data.address);
+                        const finalAddress = data.address || form.getValues("name") || "";
+                        form.setValue("location", finalAddress);
                         form.setValue("latitude", data.latitude);
                         form.setValue("longitude", data.longitude);
                         if (data.mapUrl) {

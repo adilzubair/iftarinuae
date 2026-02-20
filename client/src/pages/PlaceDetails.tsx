@@ -85,7 +85,11 @@ export default function PlaceDetails() {
                 <button
                   type="button"
                   onClick={() => {
-                    const url = place.mapUrl || `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
+                    let fallbackUrl = `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
+                    if (place.latitude === "0" || place.longitude === "0") {
+                      fallbackUrl = `https://www.google.com/maps?q=${encodeURIComponent(place.name + " " + place.location)}`;
+                    }
+                    const url = place.mapUrl || fallbackUrl;
                     window.open(url, "_blank");
                   }}
                   className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer group"

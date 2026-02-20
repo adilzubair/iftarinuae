@@ -53,7 +53,11 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      const url = place.mapUrl || `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
+                      let fallbackUrl = `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
+                      if (place.latitude === "0" || place.longitude === "0") {
+                        fallbackUrl = `https://www.google.com/maps?q=${encodeURIComponent(place.name + " " + place.location)}`;
+                      }
+                      const url = place.mapUrl || fallbackUrl;
                       window.open(url, "_blank");
                     }}
                     className="text-sm line-clamp-2 text-left hover:text-primary underline underline-offset-2 decoration-dashed transition-colors"
