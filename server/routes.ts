@@ -187,6 +187,17 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
       return res.status(400).json({ message: "URL is required" });
     }
 
+    // SSRF Prevention: Strictly validate that the requested URL is a Google Maps shortlink
+    try {
+      const parsedUrl = new URL(shortUrl);
+      const allowedDomains = ["goo.gl", "maps.app.goo.gl"];
+      if (!allowedDomains.includes(parsedUrl.hostname.toLowerCase())) {
+        return res.status(400).json({ message: "Invalid URL domain. Only Google Maps short links are allowed." });
+      }
+    } catch (e) {
+      return res.status(400).json({ message: "Invalid URL format." });
+    }
+
     try {
       const response = await fetch(shortUrl, { method: 'HEAD' });
       const finalUrl = response.url;
