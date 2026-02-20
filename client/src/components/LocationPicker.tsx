@@ -187,7 +187,7 @@ export function LocationPicker({
   onLocationFetched,
   placeholder = "e.g. Downtown Dubai, near Burj Khalifa",
 }: LocationPickerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("link");
+  const [activeTab, setActiveTab] = useState<Tab>("search");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -441,9 +441,8 @@ export function LocationPicker({
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "link", label: "Map Link", icon: <LinkIcon className="w-3.5 h-3.5" /> },
-    { id: "gps", label: "My Location", icon: <Navigation className="w-3.5 h-3.5" /> },
     { id: "search", label: "Name", icon: <Search className="w-3.5 h-3.5" /> },
+    { id: "gps", label: "My Location", icon: <Navigation className="w-3.5 h-3.5" /> },
     { id: "map", label: "Map Pin", icon: <Map className="w-3.5 h-3.5" /> },
   ];
 
