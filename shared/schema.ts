@@ -15,6 +15,7 @@ export const places = pgTable("places", {
   location: text("location").notNull(),
   latitude: text("latitude"),
   longitude: text("longitude"),
+  googleMapLink: text("google_map_link"),
   createdBy: varchar("created_by").notNull(), // Links to user ID
   createdAt: timestamp("created_at").defaultNow(),
   // Images (up to 3 Cloudinary URLs per place)
@@ -85,6 +86,7 @@ export const insertPlaceSchema = createInsertSchema(places).omit({
   imageUrl1: z.string().url().nullable().optional(),
   imageUrl2: z.string().url().nullable().optional(),
   imageUrl3: z.string().url().nullable().optional(),
+  googleMapLink: z.string().url().or(z.literal('')).nullable().optional(),
 });
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({

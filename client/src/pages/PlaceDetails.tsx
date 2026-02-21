@@ -123,10 +123,10 @@ export default function PlaceDetails() {
             <h1 className="text-3xl md:text-5xl font-display font-bold mb-5 text-balance tracking-tight text-foreground/95">{place.name}</h1>
             
             <div className="flex items-center gap-4 text-muted-foreground mb-6 flex-wrap">
-              {place.latitude && place.longitude ? (
+              {place.googleMapLink || (place.latitude && place.longitude) ? (
                 <button
                   type="button"
-                  onClick={() => window.open(`https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank")}
+                  onClick={() => window.open(place.googleMapLink || `https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank")}
                   className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer group"
                 >
                   <MapPin className="w-4 h-4 group-hover:scale-110 transition-transform" />

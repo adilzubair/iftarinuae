@@ -174,7 +174,7 @@ export default function Home() {
     <div className="container mx-auto px-4 py-8 pb-24">
       <SEO 
         title="IftarInUAE - Find the Best Iftar Places"
-        description="Discover top-rated Iftar buffets, set menus, and traditional tents across UAE for Ramadan 2026. Find iftar places near you."
+        description="Discover top-rated Iftar places and traditional tents across UAE for Ramadan 2026. Find iftar places near you."
       />
       <motion.div 
         initial={{ opacity: 0, y: -20 }}

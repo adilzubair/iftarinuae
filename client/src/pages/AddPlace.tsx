@@ -29,6 +29,7 @@ export default function AddPlace() {
       description: "",
       latitude: "",
       longitude: "",
+      googleMapLink: "",
       imageUrl1: null,
       imageUrl2: null,
       imageUrl3: null,
@@ -40,6 +41,7 @@ export default function AddPlace() {
       // Merge the image URLs (from Cloudinary state) into the form data
       await createPlace.mutateAsync({
         ...data,
+        googleMapLink: data.googleMapLink || null,
         imageUrl1: imageUrls[0] ?? null,
         imageUrl2: imageUrls[1] ?? null,
         imageUrl3: imageUrls[2] ?? null,
@@ -79,7 +81,7 @@ export default function AddPlace() {
                   <FormControl>
                     <div className="relative">
                       <Store className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
-                      <Input placeholder="e.g. Al Mandi House" className="pl-10 h-12 rounded-xl" {...field} />
+                      <Input placeholder="e.g. Sheikh Zayed Grand Mosque" className="pl-10 h-12 rounded-xl" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -112,13 +114,27 @@ export default function AddPlace() {
 
             <FormField
               control={form.control}
+              name="googleMapLink"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base">Google Maps Link</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://maps.google.com/..." className="h-12 rounded-xl" {...field} value={field.value || ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base">Description (Optional)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="What kind of food do they serve? Is it a buffet or set menu?"
+                      placeholder="What kind of food do they serve?"
                       className="min-h-[140px] resize-none rounded-xl"
                       {...field}
                       value={field.value || ""}

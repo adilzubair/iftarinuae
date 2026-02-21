@@ -47,13 +47,13 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
                     {((place as any).distance as number).toFixed(1)} km away
                   </span>
                 )}
-                {place.latitude && place.longitude ? (
+                {place.googleMapLink || (place.latitude && place.longitude) ? (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      window.open(`https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank");
+                      window.open(place.googleMapLink || `https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank");
                     }}
                     className="text-sm line-clamp-2 text-left hover:text-primary underline underline-offset-2 decoration-dashed transition-colors"
                   >

@@ -99,15 +99,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async approvePlace(placeId: string, adminUserId: string): Promise<Place | undefined> {
+    // 1. Fetch the pending place to check for images
+    const [pendingPlace] = await db
+      .select({
+        createdBy: places.createdBy,
+        imageUrl1: places.imageUrl1,
+        imageUrl2: places.imageUrl2,
+        imageUrl3: places.imageUrl3,
+      })
+      .from(places)
+      .where(eq(places.id, placeId));
+
+    if (!pendingPlace) return undefined;
+
+    // 2. Approve the place, but clear its image slots (so they don't bypass photo approval)
     const [approvedPlace] = await db
       .update(places)
       .set({
         approved: true,
         approvedBy: adminUserId,
         approvedAt: new Date(),
+        imageUrl1: null,
+        imageUrl2: null,
+        imageUrl3: null,
       })
       .where(eq(places.id, placeId))
       .returning();
+
+    // 3. Submit extracted extracted images to the photo approvals queue
+    const imagesToRoute = [pendingPlace.imageUrl1, pendingPlace.imageUrl2, pendingPlace.imageUrl3].filter(Boolean) as string[];
+
+    for (const url of imagesToRoute) {
+      // Use the original creator's user ID as the submitter, so it tracks back to them
+      await this.submitPlaceImage(placeId, pendingPlace.createdBy, url);
+    }
 
     return approvedPlace;
   }

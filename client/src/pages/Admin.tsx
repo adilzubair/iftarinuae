@@ -377,6 +377,11 @@ function PlacesTable({
               <TableCell className="font-medium">
                 <div>{place.name}</div>
                 <div className="text-xs text-muted-foreground truncate max-w-[200px]">{place.description}</div>
+                {!place.approved && (place.imageUrl1 || place.imageUrl2 || place.imageUrl3) && (
+                  <div className="text-xs text-uae-green mt-1 font-medium bg-uae-green/10 inline-block px-1.5 py-0.5 rounded">
+                    📸 Photos attached. Will move to Photo Approvals after place approval.
+                  </div>
+                )}
               </TableCell>
               <TableCell>{place.location}</TableCell>
               <TableCell>

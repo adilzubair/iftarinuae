@@ -11,7 +11,7 @@ interface SEOProps {
 
 export function SEO({ 
   title = "IftarInUAE - Find the Best Iftar Places", 
-  description = "Discover top-rated Iftar buffets, set menus, and traditional tents across UAE for Ramadan 2026.", 
+  description = "Discover top-rated Iftar places and traditional tents across UAE for Ramadan 2026.", 
   imageUrl = "/og-image.jpg", // TODO: Add a default OG image to attached_assets or public
   url = "https://iftarinuae.com", 
   type = "website",
