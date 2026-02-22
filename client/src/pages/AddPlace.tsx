@@ -77,7 +77,7 @@ export default function AddPlace() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base">Place Name</FormLabel>
+                  <FormLabel className="text-base">Place Name <span className="text-destructive">*</span></FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Store className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
@@ -94,7 +94,7 @@ export default function AddPlace() {
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base">Location</FormLabel>
+                  <FormLabel className="text-base">Location Text <span className="text-destructive">*</span></FormLabel>
                   <FormControl>
                     <LocationPicker
                       value={field.value}
@@ -112,19 +112,24 @@ export default function AddPlace() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="googleMapLink"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base">Google Maps Link</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://maps.google.com/..." className="h-12 rounded-xl" {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="bg-muted/50 p-4 rounded-xl border border-border/50">
+              <p className="text-sm text-muted-foreground mb-4">
+                <strong>Important:</strong> Please either drop a pin on the map above, OR paste a Google Maps link below.
+              </p>
+              <FormField
+                control={form.control}
+                name="googleMapLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base">Google Maps Link</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://maps.google.com/..." className="h-12 rounded-xl bg-background" {...field} value={field.value || ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

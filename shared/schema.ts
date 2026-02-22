@@ -88,15 +88,25 @@ export const insertPlaceSchema = createInsertSchema(places).omit({
   approvedBy: true,
   approvedAt: true,
 }).extend({
-  name: z.string().max(255, "Name must be less than 255 characters"),
+  name: z.string().min(1, "Name is required").max(255, "Name must be less than 255 characters"),
   description: z.string().max(2000, "Description must be less than 2000 characters").nullable().optional(),
-  location: z.string().max(255, "Location must be less than 255 characters"),
+  location: z.string().min(1, "Location text is required").max(255, "Location must be less than 255 characters"),
   // All three image fields are optional Cloudinary URLs
   imageUrl1: z.string().url().max(1000).nullable().optional(),
   imageUrl2: z.string().url().max(1000).nullable().optional(),
   imageUrl3: z.string().url().max(1000).nullable().optional(),
-  googleMapLink: z.string().url().max(1000).or(z.literal('')).nullable().optional(),
-});
+  googleMapLink: z.string().url("Please enter a valid URL").max(1000).or(z.literal('')).nullable().optional(),
+}).refine(
+  (data) => {
+    const hasCoords = !!data.latitude && !!data.longitude && data.latitude !== "" && data.longitude !== "";
+    const hasLink = !!data.googleMapLink && data.googleMapLink.trim() !== "";
+    return hasCoords || hasLink;
+  },
+  {
+    message: "Requirement: Please either pin the location on the map above, OR provide a Google Maps link.",
+    path: ["googleMapLink"],
+  }
+);
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({
   id: true,
