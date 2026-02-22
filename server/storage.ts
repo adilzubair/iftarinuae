@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { places, reviews, placeImageSubmissions, type InsertPlace, type InsertReview, type Place, type Review, type PlaceWithReviews, type PlaceImageSubmission, type PlaceImageSubmissionWithPlace } from "../shared/schema";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { eq, sql, and, desc, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getPlaces(): Promise<PlaceWithReviews[]>;
@@ -30,19 +30,56 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  // Optimized bulk fetch to prevent N+1 queries
+  private async buildPlacesBulk(placesList: Place[], shrinkPayload: boolean = false): Promise<PlaceWithReviews[]> {
+    if (placesList.length === 0) return [];
+
+    const placeIds = placesList.map((p) => p.id);
+    const allReviews = await db
+      .select({
+        placeId: reviews.placeId,
+        rating: reviews.rating,
+      })
+      .from(reviews)
+      .where(inArray(reviews.placeId, placeIds));
+
+    // Group reviews by place
+    const reviewMap = new Map<string, { count: number; total: number }>();
+    for (const r of allReviews) {
+      const current = reviewMap.get(r.placeId) || { count: 0, total: 0 };
+      current.count += 1;
+      current.total += r.rating;
+      reviewMap.set(r.placeId, current);
+    }
+
+    return placesList.map((place) => {
+      const revStats = reviewMap.get(place.id) || { count: 0, total: 0 };
+      const avg = revStats.count > 0 ? revStats.total / revStats.count : 0;
+
+      return {
+        ...place,
+        // Shrink payload to save DB egress bytes if requested
+        description: shrinkPayload ? null : place.description,
+        imageUrl2: shrinkPayload ? null : place.imageUrl2,
+        imageUrl3: shrinkPayload ? null : place.imageUrl3,
+        reviews: [],
+        reviewCount: revStats.count,
+        averageRating: Number(avg.toFixed(1)),
+      };
+    });
+  }
+
   async getPlaces(): Promise<PlaceWithReviews[]> {
-    // Get only approved places for public view
+    // Get only approved places for public view (max 200)
     const approvedPlaces = await db
       .select()
       .from(places)
       .where(eq(places.approved, true))
-      .orderBy(desc(places.createdAt));
+      .orderBy(desc(places.createdAt))
+      .limit(200);
 
-    const result = await Promise.all(
-      approvedPlaces.map((place) => this.buildPlaceWithReviews(place, false))
-    );
-
-    return result;
+    // Shrink payload for massive listing endpoints using bulk fetch
+    return this.buildPlacesBulk(approvedPlaces, true);
   }
 
   async getPlace(id: string): Promise<PlaceWithReviews | undefined> {
@@ -76,11 +113,7 @@ export class DatabaseStorage implements IStorage {
     // Get ALL places (approved and pending) for admin view
     const allPlaces = await db.select().from(places).orderBy(desc(places.createdAt));
 
-    const result = await Promise.all(
-      allPlaces.map((place) => this.buildPlaceWithReviews(place, false))
-    );
-
-    return result;
+    return this.buildPlacesBulk(allPlaces, false);
   }
 
   async getPendingPlaces(): Promise<PlaceWithReviews[]> {
@@ -91,11 +124,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(places.approved, false))
       .orderBy(desc(places.createdAt));
 
-    const result = await Promise.all(
-      pendingPlaces.map((place) => this.buildPlaceWithReviews(place, false))
-    );
-
-    return result;
+    return this.buildPlacesBulk(pendingPlaces, false);
   }
 
   async approvePlace(placeId: string, adminUserId: string): Promise<Place | undefined> {

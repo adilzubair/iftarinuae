@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, uuid, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -26,6 +26,12 @@ export const places = pgTable("places", {
   approved: boolean("approved").default(false).notNull(),
   approvedBy: varchar("approved_by"), // Links to admin user ID (nullable)
   approvedAt: timestamp("approved_at"), // Nullable
+}, (table) => {
+  return {
+    approvedIdx: index("approved_idx").on(table.approved),
+    locationIdx: index("location_idx").on(table.location),
+    createdAtIdx: index("created_at_idx").on(table.createdAt),
+  };
 });
 
 // === PLACE IMAGE SUBMISSIONS (pending admin approval) ===

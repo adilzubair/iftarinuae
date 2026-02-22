@@ -8,3 +8,4 @@ vite.config.ts.*
 attached_assets
 DEPLOYMENT.md
 scripts/
+migrations/
