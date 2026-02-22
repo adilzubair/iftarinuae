@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, uuid, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -26,6 +26,12 @@ export const places = pgTable("places", {
   approved: boolean("approved").default(false).notNull(),
   approvedBy: varchar("approved_by"), // Links to admin user ID (nullable)
   approvedAt: timestamp("approved_at"), // Nullable
+}, (table) => {
+  return {
+    approvedIdx: index("approved_idx").on(table.approved),
+    locationIdx: index("location_idx").on(table.location),
+    createdAtIdx: index("created_at_idx").on(table.createdAt),
+  };
 });
 
 // === PLACE IMAGE SUBMISSIONS (pending admin approval) ===
@@ -82,12 +88,25 @@ export const insertPlaceSchema = createInsertSchema(places).omit({
   approvedBy: true,
   approvedAt: true,
 }).extend({
+  name: z.string().min(1, "Name is required").max(255, "Name must be less than 255 characters"),
+  description: z.string().max(2000, "Description must be less than 2000 characters").nullable().optional(),
+  location: z.string().min(1, "Location text is required").max(255, "Location must be less than 255 characters"),
   // All three image fields are optional Cloudinary URLs
-  imageUrl1: z.string().url().nullable().optional(),
-  imageUrl2: z.string().url().nullable().optional(),
-  imageUrl3: z.string().url().nullable().optional(),
-  googleMapLink: z.string().url().or(z.literal('')).nullable().optional(),
-});
+  imageUrl1: z.string().url().max(1000).nullable().optional(),
+  imageUrl2: z.string().url().max(1000).nullable().optional(),
+  imageUrl3: z.string().url().max(1000).nullable().optional(),
+  googleMapLink: z.string().url("Please enter a valid URL").max(1000).or(z.literal('')).nullable().optional(),
+}).refine(
+  (data) => {
+    const hasCoords = !!data.latitude && !!data.longitude && data.latitude !== "" && data.longitude !== "";
+    const hasLink = !!data.googleMapLink && data.googleMapLink.trim() !== "";
+    return hasCoords || hasLink;
+  },
+  {
+    message: "Requirement: Please either pin the location on the map above, OR provide a Google Maps link.",
+    path: ["googleMapLink"],
+  }
+);
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({
   id: true,
@@ -95,6 +114,7 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
   placeId: true,
   createdAt: true
 }).extend({
+  comment: z.string().max(2000, "Comment must be less than 2000 characters").nullable().optional(),
   rating: z.number().min(1).max(5),
 });
 

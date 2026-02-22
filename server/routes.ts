@@ -15,12 +15,14 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
 
   // List Places
   app.get(api.places.list.path, async (req, res) => {
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     const places = await storage.getPlaces();
     res.json(places);
   });
 
   // Get Nearby Places
   app.get("/api/places/nearby", async (req, res) => {
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     const lat = parseFloat(req.query.lat as string);
     const lng = parseFloat(req.query.lng as string);
 
@@ -74,6 +76,7 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
 
   // Get Place Details
   app.get(api.places.get.path, async (req, res) => {
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     const place = await storage.getPlace(req.params.id as string);
     if (!place) {
       return res.status(404).json({ message: "Place not found" });
@@ -316,54 +319,7 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
     res.send(sitemap);
   });
 
-  // Seed Data (if empty)
-  console.log(`[${new Date().toISOString()}] Checking if database needs seeding...`);
-
-  try {
-    const placesDataPromise = storage.getPlaces();
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout after 10s")), 10000)
-    );
-
-    const placesData = await Promise.race([placesDataPromise, timeoutPromise]) as any;
-    console.log(`[${new Date().toISOString()}] Database has ${placesData.length} places`);
-    if (placesData.length === 0) {
-      console.log("Seeding database...");
-      const user = "system_seed_user"; // Placeholder user ID for seed data
-
-      const dubaiMall = await storage.createPlace({
-        name: "Al Hallab - Dubai Mall",
-        description: "Authentic Lebanese cuisine with a view of the fountains. Great for families.",
-        location: "Dubai Mall, Downtown Dubai",
-        createdBy: user,
-      } as any);
-
-      await storage.createReview({
-        placeId: dubaiMall.id,
-        userId: user,
-        rating: 5,
-        comment: "Amazing food and atmosphere!",
-      } as any);
-
-      await storage.createPlace({
-        name: "Seven Sands",
-        description: "Traditional Emirati cuisine with a modern twist. Located at The Beach, JBR.",
-        location: "The Beach, JBR, Dubai",
-        createdBy: user,
-      } as any);
-
-      await storage.createPlace({
-        name: "Tent Jumeirah Restaurant",
-        description: "Experience iftar in a traditional setting right by the sea.",
-        location: "Umm Suqeim, Jumeirah, Dubai",
-        createdBy: user,
-      } as any);
-
-      console.log("Seeding complete.");
-    }
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error during seeding:`, error);
-  }
+  // Database seeding omitted in serverless environment to prevent DB egress limits.
 
   // We return the http server instance if we had one, but strict return type demands Server. 
   // Since we removed httpServer input, we can just return app as unknown as Server or just null, 

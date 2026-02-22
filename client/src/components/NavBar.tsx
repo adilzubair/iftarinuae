@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { MoonStar, LogOut, User as UserIcon, ShieldAlert } from "lucide-react";
@@ -14,11 +14,19 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function NavBar() {
+  const [location] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
 
   const handleLogin = () => {
     window.location.href = "/login";
+  };
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (location === "/") {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   useEffect(() => {
@@ -49,7 +57,7 @@ export function NavBar() {
           }`}
         >
           <div className="w-[178px] shrink-0 ml-4 flex items-center">
-            <Link href="/" className="flex items-center gap-2.5 group outline-none shrink-0">
+            <Link href="/" onClick={handleLogoClick} className="flex items-center gap-2.5 group outline-none shrink-0">
               <div className="bg-primary text-primary-foreground p-2 rounded-full group-hover:bg-primary/90 transition-all duration-300 shadow-sm group-hover:shadow group-hover:-translate-y-0.5">
                 <MoonStar className="w-5 h-5" />
               </div>
