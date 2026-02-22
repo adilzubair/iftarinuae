@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { places, reviews, placeImageSubmissions, type InsertPlace, type InsertReview, type Place, type Review, type PlaceWithReviews, type PlaceImageSubmission, type PlaceImageSubmissionWithPlace } from "../shared/schema";
-import { eq, sql, and, desc, inArray } from "drizzle-orm";
+import { eq, sql, and, desc, inArray, count } from "drizzle-orm";
 
 export interface IStorage {
   getPlaces(): Promise<PlaceWithReviews[]>;
@@ -185,16 +185,17 @@ export class DatabaseStorage implements IStorage {
     approvedToday: number;
     pendingImages: number;
   }> {
-    const allPlacesResult = await db.select().from(places);
-    const approvedPlacesResult = await db.select().from(places).where(eq(places.approved, true));
-    const pendingPlacesResult = await db.select().from(places).where(eq(places.approved, false));
-    const pendingImagesResult = await db.select().from(placeImageSubmissions).where(eq(placeImageSubmissions.approved, false));
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const approvedTodayResult = await db
-      .select()
+    // Optimized native COUNT() queries to avoid massive database egress
+    const [allPlaces] = await db.select({ count: count() }).from(places);
+    const [approved] = await db.select({ count: count() }).from(places).where(eq(places.approved, true));
+    const [pending] = await db.select({ count: count() }).from(places).where(eq(places.approved, false));
+    const [pendingImgs] = await db.select({ count: count() }).from(placeImageSubmissions).where(eq(placeImageSubmissions.approved, false));
+
+    const [approvedToday] = await db
+      .select({ count: count() })
       .from(places)
       .where(
         and(
@@ -204,11 +205,11 @@ export class DatabaseStorage implements IStorage {
       );
 
     return {
-      totalPlaces: allPlacesResult.length,
-      approvedPlaces: approvedPlacesResult.length,
-      pendingPlaces: pendingPlacesResult.length,
-      approvedToday: approvedTodayResult.length,
-      pendingImages: pendingImagesResult.length,
+      totalPlaces: Number(allPlaces.count),
+      approvedPlaces: Number(approved.count),
+      pendingPlaces: Number(pending.count),
+      approvedToday: Number(approvedToday.count),
+      pendingImages: Number(pendingImgs.count),
     };
   }
 
