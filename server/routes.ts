@@ -15,12 +15,14 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
 
   // List Places
   app.get(api.places.list.path, async (req, res) => {
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     const places = await storage.getPlaces();
     res.json(places);
   });
 
   // Get Nearby Places
   app.get("/api/places/nearby", async (req, res) => {
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     const lat = parseFloat(req.query.lat as string);
     const lng = parseFloat(req.query.lng as string);
 
@@ -74,6 +76,7 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
 
   // Get Place Details
   app.get(api.places.get.path, async (req, res) => {
+    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     const place = await storage.getPlace(req.params.id as string);
     if (!place) {
       return res.status(404).json({ message: "Place not found" });
