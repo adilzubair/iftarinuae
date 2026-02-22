@@ -58,8 +58,7 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...place,
-        // Shrink payload to save DB egress bytes if requested
-        description: shrinkPayload ? null : place.description,
+        // Description remains intact for Home page cards and search
         imageUrl2: shrinkPayload ? null : place.imageUrl2,
         imageUrl3: shrinkPayload ? null : place.imageUrl3,
         reviews: [],
