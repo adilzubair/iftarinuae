@@ -88,11 +88,14 @@ export const insertPlaceSchema = createInsertSchema(places).omit({
   approvedBy: true,
   approvedAt: true,
 }).extend({
+  name: z.string().max(255, "Name must be less than 255 characters"),
+  description: z.string().max(2000, "Description must be less than 2000 characters").nullable().optional(),
+  location: z.string().max(255, "Location must be less than 255 characters"),
   // All three image fields are optional Cloudinary URLs
-  imageUrl1: z.string().url().nullable().optional(),
-  imageUrl2: z.string().url().nullable().optional(),
-  imageUrl3: z.string().url().nullable().optional(),
-  googleMapLink: z.string().url().or(z.literal('')).nullable().optional(),
+  imageUrl1: z.string().url().max(1000).nullable().optional(),
+  imageUrl2: z.string().url().max(1000).nullable().optional(),
+  imageUrl3: z.string().url().max(1000).nullable().optional(),
+  googleMapLink: z.string().url().max(1000).or(z.literal('')).nullable().optional(),
 });
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({
@@ -101,6 +104,7 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
   placeId: true,
   createdAt: true
 }).extend({
+  comment: z.string().max(2000, "Comment must be less than 2000 characters").nullable().optional(),
   rating: z.number().min(1).max(5),
 });
 

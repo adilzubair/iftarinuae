@@ -110,7 +110,7 @@ export class DatabaseStorage implements IStorage {
 
   async getPlacesForAdmin(): Promise<PlaceWithReviews[]> {
     // Get ALL places (approved and pending) for admin view
-    const allPlaces = await db.select().from(places).orderBy(desc(places.createdAt));
+    const allPlaces = await db.select().from(places).orderBy(desc(places.createdAt)).limit(1000); // Safety cap for admin panel
 
     return this.buildPlacesBulk(allPlaces, false);
   }
@@ -121,7 +121,8 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(places)
       .where(eq(places.approved, false))
-      .orderBy(desc(places.createdAt));
+      .orderBy(desc(places.createdAt))
+      .limit(1000); // Safety cap for admin panel
 
     return this.buildPlacesBulk(pendingPlaces, false);
   }
