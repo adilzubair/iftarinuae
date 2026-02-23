@@ -23,6 +23,7 @@ export const places = pgTable("places", {
   imageUrl2: text("image_url_2"),
   imageUrl3: text("image_url_3"),
   // Approval workflow fields
+  isFamilyFriendly: boolean("is_family_friendly").default(false).notNull(),
   approved: boolean("approved").default(false).notNull(),
   approvedBy: varchar("approved_by"), // Links to admin user ID (nullable)
   approvedAt: timestamp("approved_at"), // Nullable
@@ -95,6 +96,7 @@ export const insertPlaceSchema = createInsertSchema(places).omit({
   imageUrl1: z.string().url().max(1000).nullable().optional(),
   imageUrl2: z.string().url().max(1000).nullable().optional(),
   imageUrl3: z.string().url().max(1000).nullable().optional(),
+  isFamilyFriendly: z.boolean().default(false).optional(),
   googleMapLink: z.string().url("Please enter a valid URL").max(1000).or(z.literal('')).nullable().optional(),
 }).refine(
   (data) => {

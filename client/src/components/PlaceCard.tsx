@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { MapPin, Star, MessageSquare } from "lucide-react";
+import { MapPin, Star, MessageSquare, Users } from "lucide-react";
 import { type PlaceWithReviews } from "@shared/schema";
 import { motion } from "framer-motion";
 import { ShareButton } from "./ShareButton";
@@ -38,6 +38,13 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
                 </div>
               )}
             </div>
+
+            {place.isFamilyFriendly && (
+              <div className="flex items-center gap-1.5 text-uae-green bg-uae-green/10 w-fit px-2 py-1 rounded-full mb-3">
+                <Users className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Family Friendly</span>
+              </div>
+            )}
             
             <div className="flex items-start gap-1.5 text-muted-foreground mb-4">
               <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-uae-red" />
