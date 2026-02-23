@@ -107,6 +107,16 @@
     font-family: 'Outfit', sans-serif;
     @apply tracking-tight text-foreground/95;
   }
+
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 @layer utilities {
