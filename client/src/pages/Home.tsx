@@ -3,7 +3,7 @@ import { usePlaces } from "@/hooks/use-places";
 import { PlaceCard } from "@/components/PlaceCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Loader2, Navigation, X, MapPin, AlertCircle } from "lucide-react";
+import { Search, Plus, Loader2, Navigation, X, MapPin, AlertCircle, Users } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -100,6 +100,7 @@ export default function Home() {
   };
 
   const [selectedEmirate, setSelectedEmirate] = useState("All");
+  const [familyFriendlyOnly, setFamilyFriendlyOnly] = useState(false);
 
   const EMIRATES = [
     "All",
@@ -116,6 +117,8 @@ export default function Home() {
   const activeData = nearbyPlaces || places || [];
 
   const filteredPlaces = activeData.filter(place => {
+    if (familyFriendlyOnly && !place.isFamilyFriendly) return false;
+
     const matchesSearch = place.name.toLowerCase().includes(search.toLowerCase()) || 
                           place.location.toLowerCase().includes(search.toLowerCase());
     
@@ -278,10 +281,10 @@ export default function Home() {
 
       </motion.div>
 
-      {/* Emirate Filter Tabs - hidden if "Near Me" is active */}
+      {/* Emirate Filter Tabs & Additional Filters - hidden if "Near Me" is active */}
       {!nearbyPlaces && (
         <div className="mb-8 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-          <div className="flex gap-2 min-w-max">
+          <div className="flex gap-2 min-w-max items-center">
             {EMIRATES.map((emirate) => (
               <button
                 key={emirate}
@@ -295,6 +298,20 @@ export default function Home() {
                 {emirate}
               </button>
             ))}
+            
+            <div className="w-px h-6 bg-border mx-1"></div>
+
+            <button
+              onClick={() => setFamilyFriendlyOnly(!familyFriendlyOnly)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border flex items-center gap-1.5 ${
+                familyFriendlyOnly
+                  ? "bg-uae-green/10 text-uae-green border-uae-green/30 hover:bg-uae-green/20"
+                  : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Family Friendly
+            </button>
           </div>
         </div>
       )}

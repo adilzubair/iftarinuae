@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Loader2, Store } from "lucide-react";
+import { ArrowLeft, Loader2, Store, Users } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LocationPicker } from "@/components/LocationPicker";
 import { CloudinaryUpload } from "@/components/CloudinaryUpload";
 
@@ -33,6 +34,7 @@ export default function AddPlace() {
       imageUrl1: null,
       imageUrl2: null,
       imageUrl3: null,
+      isFamilyFriendly: false,
     },
   });
 
@@ -146,6 +148,31 @@ export default function AddPlace() {
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isFamilyFriendly"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border/50 bg-muted/30 p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base flex items-center gap-2">
+                      <Users className="w-5 h-5 text-uae-green" />
+                      Family Friendly
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Does this place have facilities or an environment suitable for families with children?
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="w-6 h-6 rounded-md data-[state=checked]:bg-uae-green data-[state=checked]:border-uae-green"
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
