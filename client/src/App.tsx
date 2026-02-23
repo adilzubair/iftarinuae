@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -66,13 +67,15 @@ function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Analytics />
-          <ErrorBoundary>
-            <Router />
-          </ErrorBoundary>
-        </TooltipProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <TooltipProvider>
+            <Toaster />
+            <Analytics />
+            <ErrorBoundary>
+              <Router />
+            </ErrorBoundary>
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </HelmetProvider>
   );
