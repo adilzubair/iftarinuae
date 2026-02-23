@@ -24,7 +24,7 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
       <Link href={`/places/${place.id}`} className="block h-full group">
-        <article className="h-full bg-card rounded-[20px] border border-border/40 p-6 shadow-soft hover:shadow-soft-lg hover:-translate-y-1.5 hover:border-l-[4px] hover:border-l-uae-green transition-all duration-400 flex flex-col justify-between relative overflow-hidden">
+        <article className="h-full bg-card rounded-[20px] border border-border/40 p-6 shadow-soft hover:shadow-soft-lg md:hover:-translate-y-1.5 md:hover:border-l-[4px] md:hover:border-l-uae-green transition-all duration-400 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300/40 via-orange-400/40 to-red-400/40 opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-3">

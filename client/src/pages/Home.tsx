@@ -208,8 +208,8 @@ export default function Home() {
           <Button
             className={`h-12 rounded-full shrink-0 shadow-sm px-5 gap-2 font-medium border transition-all ${
               nearbyPlaces
-                ? "bg-uae-red/10 text-uae-red border-uae-red/30 hover:bg-uae-red/20"
-                : "bg-background text-foreground border-border/60 hover:bg-secondary"
+                ? "bg-uae-red/10 text-uae-red border-uae-red/30 md:hover:bg-uae-red/20 active:bg-uae-red/20"
+                : "bg-background text-foreground border-border/60 md:hover:bg-secondary active:bg-secondary"
             }`}
             variant="ghost"
             onClick={nearbyPlaces ? clearNearby : handleFindNearest}
@@ -289,8 +289,8 @@ export default function Home() {
               onClick={() => setFamilyFriendlyOnly(!familyFriendlyOnly)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border flex items-center gap-1.5 ${
                 familyFriendlyOnly
-                  ? "bg-uae-green/10 text-uae-green border-uae-green/30 hover:bg-uae-green/20"
-                  : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                  ? "bg-uae-green/10 text-uae-green border-uae-green/30 md:hover:bg-uae-green/20 active:bg-uae-green/20"
+                  : "bg-background text-muted-foreground border-border md:hover:bg-secondary md:hover:text-foreground active:bg-secondary active:text-foreground"
               }`}
             >
               <Users className="w-4 h-4" />
@@ -306,7 +306,7 @@ export default function Home() {
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
                   selectedEmirate === emirate
                     ? "bg-foreground text-background border-foreground"
-                    : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                    : "bg-background text-muted-foreground border-border md:hover:bg-secondary md:hover:text-foreground active:bg-secondary active:text-foreground"
                 }`}
               >
                 {emirate}
