@@ -21,7 +21,7 @@ export function PlaceCard({ place, index }: PlaceCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
+      transition={{ duration: 0.3, delay: Math.min(index, 10) * 0.05 }}
     >
       <Link href={`/places/${place.id}`} className="block h-full group">
         <article className="h-full bg-card rounded-[20px] border border-border/40 p-6 shadow-soft hover:shadow-soft-lg md:hover:-translate-y-1.5 md:hover:border-l-[4px] md:hover:border-l-uae-green transition-all duration-400 flex flex-col justify-between relative overflow-hidden">

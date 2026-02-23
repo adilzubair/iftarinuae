@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useDeferredValue } from "react";
 import { usePlaces } from "@/hooks/use-places";
 import { PlaceCard } from "@/components/PlaceCard";
 import { Button } from "@/components/ui/button";
@@ -102,6 +102,11 @@ export default function Home() {
   const [selectedEmirate, setSelectedEmirate] = useState("All");
   const [familyFriendlyOnly, setFamilyFriendlyOnly] = useState(false);
 
+  // Defer heavy filter values to avoid blocking button clicks
+  const deferredSearch = useDeferredValue(search);
+  const deferredSelectedEmirate = useDeferredValue(selectedEmirate);
+  const deferredFamilyFriendlyOnly = useDeferredValue(familyFriendlyOnly);
+
   const EMIRATES = [
     "All",
     "Abu Dhabi",
@@ -117,21 +122,21 @@ export default function Home() {
   const activeData = nearbyPlaces || places || [];
 
   const filteredPlaces = activeData.filter(place => {
-    if (familyFriendlyOnly && !place.isFamilyFriendly) return false;
+    if (deferredFamilyFriendlyOnly && !place.isFamilyFriendly) return false;
 
-    const matchesSearch = place.name.toLowerCase().includes(search.toLowerCase()) || 
-                          place.location.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = place.name.toLowerCase().includes(deferredSearch.toLowerCase()) || 
+                          place.location.toLowerCase().includes(deferredSearch.toLowerCase());
     
     // Near Me overrides Emirate filter
     if (nearbyPlaces) return matchesSearch;
 
-    if (selectedEmirate === "All") return matchesSearch;
+    if (deferredSelectedEmirate === "All") return matchesSearch;
     
     // --- Hybrid Filter Logic (Text + Coordinates) ---
 
     // 1. Text Check
     const searchString = (place.location + " " + (place.description || "")).toLowerCase();
-    const emirateLower = selectedEmirate.toLowerCase();
+    const emirateLower = deferredSelectedEmirate.toLowerCase();
     const matchesText = searchString.includes(emirateLower);
 
     // 2. Coordinate Check (Approximate bounding boxes for cases where text is missing)
@@ -140,7 +145,7 @@ export default function Home() {
     const lng = parseFloat(place.longitude || "0");
 
     if (lat && lng) {
-      switch (selectedEmirate) {
+      switch (deferredSelectedEmirate) {
         case "Abu Dhabi":
           // Broad AD check: Lat < 24.6 (City & Western Region) or Long < 54.8 (avoiding Dubai border)
           // Sheikh Zayed Mosque is at ~24.4, 54.4
