@@ -47,12 +47,13 @@ export function Footer() {
 
         {/* Attribution and Bottom Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-muted-foreground">
+            <p className="text-sm">
               © {currentYear} IftarInUAE. All rights reserved.
             </p>
-            <p className="text-xs font-medium flex items-center justify-center md:justify-start gap-1 text-muted-foreground/80">
-              Crafted with <Heart className="w-3 h-3 text-red-500 fill-red-500" /> by <a href="https://github.com/adilzubair" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-primary transition-colors border-b border-border hover:border-primary pb-px">Muhamed Adil</a>
+            <div className="hidden sm:block w-px h-4 bg-border/60" />
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              Crafted with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> by <a href="https://github.com/adilzubair" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-primary transition-colors border-b border-border hover:border-primary pb-px">Muhamed Adil</a>
             </p>
           </div>
 
