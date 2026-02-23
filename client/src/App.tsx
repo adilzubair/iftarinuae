@@ -4,7 +4,6 @@ import { HelmetProvider } from "react-helmet-async";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { NavBar } from "@/components/NavBar";
 import { Footer } from "@/components/Footer";
 import Home from "@/pages/Home";
@@ -68,13 +67,11 @@ function App() {
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <TooltipProvider>
-            <Toaster />
-            <Analytics />
-            <ErrorBoundary>
-              <Router />
-            </ErrorBoundary>
-          </TooltipProvider>
+          <Toaster />
+          <Analytics />
+          <ErrorBoundary>
+            <Router />
+          </ErrorBoundary>
         </ThemeProvider>
       </QueryClientProvider>
     </HelmetProvider>

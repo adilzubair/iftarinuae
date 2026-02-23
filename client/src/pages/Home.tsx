@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useDeferredValue } from "react";
 import { usePlaces } from "@/hooks/use-places";
 import { PlaceCard } from "@/components/PlaceCard";
 import { Button } from "@/components/ui/button";
@@ -102,6 +102,11 @@ export default function Home() {
   const [selectedEmirate, setSelectedEmirate] = useState("All");
   const [familyFriendlyOnly, setFamilyFriendlyOnly] = useState(false);
 
+  // Defer heavy filter values to avoid blocking button clicks
+  const deferredSearch = useDeferredValue(search);
+  const deferredSelectedEmirate = useDeferredValue(selectedEmirate);
+  const deferredFamilyFriendlyOnly = useDeferredValue(familyFriendlyOnly);
+
   const EMIRATES = [
     "All",
     "Abu Dhabi",
@@ -117,21 +122,21 @@ export default function Home() {
   const activeData = nearbyPlaces || places || [];
 
   const filteredPlaces = activeData.filter(place => {
-    if (familyFriendlyOnly && !place.isFamilyFriendly) return false;
+    if (deferredFamilyFriendlyOnly && !place.isFamilyFriendly) return false;
 
-    const matchesSearch = place.name.toLowerCase().includes(search.toLowerCase()) || 
-                          place.location.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = place.name.toLowerCase().includes(deferredSearch.toLowerCase()) || 
+                          place.location.toLowerCase().includes(deferredSearch.toLowerCase());
     
     // Near Me overrides Emirate filter
     if (nearbyPlaces) return matchesSearch;
 
-    if (selectedEmirate === "All") return matchesSearch;
+    if (deferredSelectedEmirate === "All") return matchesSearch;
     
     // --- Hybrid Filter Logic (Text + Coordinates) ---
 
     // 1. Text Check
     const searchString = (place.location + " " + (place.description || "")).toLowerCase();
-    const emirateLower = selectedEmirate.toLowerCase();
+    const emirateLower = deferredSelectedEmirate.toLowerCase();
     const matchesText = searchString.includes(emirateLower);
 
     // 2. Coordinate Check (Approximate bounding boxes for cases where text is missing)
@@ -140,7 +145,7 @@ export default function Home() {
     const lng = parseFloat(place.longitude || "0");
 
     if (lat && lng) {
-      switch (selectedEmirate) {
+      switch (deferredSelectedEmirate) {
         case "Abu Dhabi":
           // Broad AD check: Lat < 24.6 (City & Western Region) or Long < 54.8 (avoiding Dubai border)
           // Sheikh Zayed Mosque is at ~24.4, 54.4
@@ -208,8 +213,8 @@ export default function Home() {
           <Button
             className={`h-12 rounded-full shrink-0 shadow-sm px-5 gap-2 font-medium border transition-all ${
               nearbyPlaces
-                ? "bg-uae-red/10 text-uae-red border-uae-red/30 hover:bg-uae-red/20"
-                : "bg-background text-foreground border-border/60 hover:bg-secondary"
+                ? "bg-uae-red/10 text-uae-red border-uae-red/30 md:hover:bg-uae-red/20 active:bg-uae-red/20"
+                : "bg-background text-foreground border-border/60 md:hover:bg-secondary active:bg-secondary"
             }`}
             variant="ghost"
             onClick={nearbyPlaces ? clearNearby : handleFindNearest}
@@ -289,8 +294,8 @@ export default function Home() {
               onClick={() => setFamilyFriendlyOnly(!familyFriendlyOnly)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border flex items-center gap-1.5 ${
                 familyFriendlyOnly
-                  ? "bg-uae-green/10 text-uae-green border-uae-green/30 hover:bg-uae-green/20"
-                  : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                  ? "bg-uae-green/10 text-uae-green border-uae-green/30 md:hover:bg-uae-green/20 active:bg-uae-green/20"
+                  : "bg-background text-muted-foreground border-border md:hover:bg-secondary md:hover:text-foreground active:bg-secondary active:text-foreground"
               }`}
             >
               <Users className="w-4 h-4" />
@@ -306,7 +311,7 @@ export default function Home() {
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
                   selectedEmirate === emirate
                     ? "bg-foreground text-background border-foreground"
-                    : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+                    : "bg-background text-muted-foreground border-border md:hover:bg-secondary md:hover:text-foreground active:bg-secondary active:text-foreground"
                 }`}
               >
                 {emirate}
