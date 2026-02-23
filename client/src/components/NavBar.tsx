@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { MoonStar, LogOut, User as UserIcon, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemeToggle } from "./ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,10 +67,11 @@ export function NavBar() {
           </div>
 
           <div
-            className={`absolute right-4 flex items-center gap-4 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+            className={`absolute right-4 flex items-center gap-2 md:gap-4 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
               isScrolled ? "opacity-0 translate-x-8 pointer-events-none scale-95" : "opacity-100 translate-x-0 pointer-events-auto scale-100"
             }`}
           >
+            <ThemeToggle />
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
