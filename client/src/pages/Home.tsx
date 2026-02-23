@@ -285,6 +285,20 @@ export default function Home() {
       {!nearbyPlaces && (
         <div className="mb-8 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           <div className="flex gap-2 min-w-max items-center">
+            <button
+              onClick={() => setFamilyFriendlyOnly(!familyFriendlyOnly)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border flex items-center gap-1.5 ${
+                familyFriendlyOnly
+                  ? "bg-uae-green/10 text-uae-green border-uae-green/30 hover:bg-uae-green/20"
+                  : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Family Friendly
+            </button>
+            
+            <div className="w-px h-6 bg-border mx-1"></div>
+
             {EMIRATES.map((emirate) => (
               <button
                 key={emirate}
@@ -298,20 +312,6 @@ export default function Home() {
                 {emirate}
               </button>
             ))}
-            
-            <div className="w-px h-6 bg-border mx-1"></div>
-
-            <button
-              onClick={() => setFamilyFriendlyOnly(!familyFriendlyOnly)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border flex items-center gap-1.5 ${
-                familyFriendlyOnly
-                  ? "bg-uae-green/10 text-uae-green border-uae-green/30 hover:bg-uae-green/20"
-                  : "bg-background text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              Family Friendly
-            </button>
           </div>
         </div>
       )}
