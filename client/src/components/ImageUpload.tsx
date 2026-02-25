@@ -17,7 +17,7 @@ const MAX_IMAGES = 3;
 
 /** Upload a single file to the server (which compresses + stores in R2) */
 async function uploadImage(file: File): Promise<string> {
-    const token = await getIdToken();
+    const token = await getIdToken(true);
     if (!token) throw new Error("You must be logged in to upload images.");
 
     const formData = new FormData();
@@ -55,14 +55,39 @@ export function ImageUpload({
 
     const handleFileChange = useCallback(
         async (e: React.ChangeEvent<HTMLInputElement>, slotIndex: number) => {
-            const file = e.target.files?.[0];
+            let file = e.target.files?.[0];
             if (!file) return;
+
+            // Handle HEIC/HEIF conversion for iOS devices
+            if (file.type === "image/heic" || file.type === "image/heif" || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+                setUploading(slotIndex); // Show spinner during conversion
+                try {
+                    const heic2any = (await import("heic2any")).default;
+                    const convertedBlob = await heic2any({
+                        blob: file,
+                        toType: "image/jpeg",
+                        quality: 0.8 // Good balance for initial conversion, server will compress further
+                    });
+                    
+                    // heic2any can return an array of blobs if it's a multi-image file
+                    const blobToUse = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+                    
+                    // Create a new File object from the blob
+                    const newFileName = file.name.replace(/\.heic|\.heif/i, '.jpg');
+                    file = new File([blobToUse], newFileName, { type: "image/jpeg" });
+                } catch (err) {
+                    console.error("HEIC conversion failed:", err);
+                    alert("Failed to process iPhone photo format. Please try another image.");
+                    setUploading(null);
+                    return;
+                }
+            }
 
             if (!file.type.startsWith("image/")) {
                 alert("Please select an image file.");
                 return;
             }
-            if (file.size > 10 * 1024 * 1024) {
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit (checked after potential HEIC conversion)
                 alert("Image must be under 10 MB.");
                 return;
             }
