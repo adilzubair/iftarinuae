@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SEO } from "@/components/SEO";
 import { ShareButton } from "@/components/ShareButton";
-import { CloudinaryUpload } from "@/components/CloudinaryUpload";
+import { ImageUpload } from "@/components/ImageUpload";
 import { useToast } from "@/hooks/use-toast";
 
 export default function PlaceDetails() {
@@ -226,7 +226,7 @@ export default function PlaceDetails() {
                     </span>
                   )}
                 </p>
-                <CloudinaryUpload
+                <ImageUpload
                   imageUrls={pendingPhoto}
                   onChange={setPendingPhoto}
                   maxSlots={remainingSlots}
