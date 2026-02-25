@@ -17,7 +17,7 @@ const MAX_IMAGES = 3;
 
 /** Upload a single file to the server (which compresses + stores in R2) */
 async function uploadImage(file: File): Promise<string> {
-    const token = await getIdToken();
+    const token = await getIdToken(true);
     if (!token) throw new Error("You must be logged in to upload images.");
 
     const formData = new FormData();
