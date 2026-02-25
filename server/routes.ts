@@ -6,10 +6,44 @@ import { z } from "zod";
 import { registerAuthRoutes, isAuthenticated } from "./auth";
 import { isAdmin } from "./middleware/admin";
 import { insertPlaceSchema, insertReviewSchema } from "../shared/schema";
+import multer from "multer";
+import { compressAndUpload } from "./r2";
+import crypto from "crypto";
+
+// Multer: accept up to 10 MB in memory
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 export async function registerRoutes(app: Express, strictLimiter?: RequestHandler): Promise<Express> {
   // Register Auth Routes (Firebase-based)
   registerAuthRoutes(app);
+
+  // === Image Upload via R2 ===
+  app.post("/api/upload-image", isAuthenticated, upload.single("image"), async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ message: "No image file provided." });
+      }
+      if (!file.mimetype.startsWith("image/")) {
+        return res.status(400).json({ message: "File must be an image." });
+      }
+
+      // Generate a unique key: places/<randomId>.webp
+      const uniqueId = crypto.randomUUID();
+      const key = `places/${uniqueId}.webp`;
+
+      const result = await compressAndUpload(file.buffer, key);
+
+      console.log(
+        `[upload] ${file.originalname}: ${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB (${((1 - result.compressedSize / result.originalSize) * 100).toFixed(0)}% reduction)`
+      );
+
+      res.json({ url: result.url });
+    } catch (err) {
+      console.error("[upload] Image upload failed:", err);
+      res.status(500).json({ message: "Image upload failed. Please try again." });
+    }
+  });
 
   // === API Routes ===
 
@@ -194,10 +228,11 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
       return res.status(400).json({ message: "imageUrl is required" });
     }
 
-    // Only accept images hosted on Cloudinary
+    // Only accept images hosted on our R2 bucket or legacy Cloudinary
     try {
       const { hostname } = new URL(imageUrl);
-      if (hostname !== "res.cloudinary.com") {
+      const allowedHosts = ["res.cloudinary.com", "pub-4775a5ece9884b0a89f8add5b7887d8d.r2.dev"];
+      if (!allowedHosts.includes(hostname)) {
         return res.status(400).json({ message: "Images must be uploaded via the app's upload tool." });
       }
     } catch {

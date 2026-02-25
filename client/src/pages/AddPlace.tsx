@@ -13,7 +13,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LocationPicker } from "@/components/LocationPicker";
-import { CloudinaryUpload } from "@/components/CloudinaryUpload";
+import { ImageUpload } from "@/components/ImageUpload";
 
 export default function AddPlace() {
   const [, setLocation] = useLocation();
@@ -182,7 +182,7 @@ export default function AddPlace() {
               <p className="text-base font-medium leading-none">
                 Photos <span className="text-sm font-normal text-muted-foreground">(Optional)</span>
               </p>
-              <CloudinaryUpload imageUrls={imageUrls} onChange={setImageUrls} />
+              <ImageUpload imageUrls={imageUrls} onChange={setImageUrls} />
             </div>
 
             <Button
