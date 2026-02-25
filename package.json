@@ -58,6 +58,7 @@
     "firebase": "^12.8.0",
     "firebase-admin": "^13.6.0",
     "framer-motion": "^11.18.2",
+    "heic2any": "^0.0.4",
     "helmet": "^8.1.0",
     "input-otp": "^1.4.2",
     "leaflet": "^1.9.4",
