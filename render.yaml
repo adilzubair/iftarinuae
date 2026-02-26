@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: iftarinuae
+    runtime: node
+    region: oregon  # closest to UAE: oregon (US-West). Singapore also available: singapore
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node dist/index.cjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: S3_API_ENDPOINT
+        sync: false
+      - key: ACCESS_KEY_ID
+        sync: false
+      - key: SECRET_ACCESS_KEY
+        sync: false
+      - key: BUCKET_NAME
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
