@@ -1,7 +1,6 @@
 import { type Express } from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
@@ -18,7 +17,18 @@ export async function setupVite(server: Server, app: Express) {
 
   console.log(`[${new Date().toISOString()}] Creating Vite server...`);
   const vite = await createViteServer({
-    ...viteConfig,
+    // Inline the config here instead of importing vite.config.ts directly.
+    // A direct import causes esbuild to bundle vite.config.ts which uses
+    // import.meta.dirname — undefined in CJS — crashing the server on Render.
+    plugins: [(await import("@vitejs/plugin-react")).default()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "..", "client", "src"),
+        "@shared": path.resolve(__dirname, "..", "shared"),
+        "@assets": path.resolve(__dirname, "..", "attached_assets"),
+      },
+    },
+    root: path.resolve(__dirname, "..", "client"),
     configFile: false,
     customLogger: {
       ...viteLogger,
@@ -41,7 +51,7 @@ export async function setupVite(server: Server, app: Express) {
 
     try {
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        __dirname, // __dirname works in CJS; import.meta.dirname does not
         "..",
         "client",
         "index.html",
