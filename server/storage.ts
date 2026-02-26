@@ -2,6 +2,54 @@ import { db } from "./db";
 import { places, reviews, placeImageSubmissions, type InsertPlace, type InsertReview, type Place, type Review, type PlaceWithReviews, type PlaceImageSubmission, type PlaceImageSubmissionWithPlace } from "../shared/schema";
 import { eq, sql, and, desc, inArray, count } from "drizzle-orm";
 
+// ---------------------------------------------------------------------------
+// Simple in-memory cache — replaces Vercel's edge s-maxage caching on Render.
+// Reduces Neon DB egress by serving repeated reads from memory.
+// ---------------------------------------------------------------------------
+const CACHE_TTL_MS = 60_000; // 60 seconds — mirrors s-maxage=60
+
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+class SimpleCache {
+  private store = new Map<string, CacheEntry<unknown>>();
+
+  get<T>(key: string): T | null {
+    const entry = this.store.get(key) as CacheEntry<T> | undefined;
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      return null;
+    }
+    return entry.data;
+  }
+
+  set<T>(key: string, data: T, ttlMs = CACHE_TTL_MS): void {
+    this.store.set(key, { data, expiresAt: Date.now() + ttlMs });
+  }
+
+  /** Delete a specific key or all keys matching a prefix. */
+  invalidate(keyOrPrefix: string): void {
+    for (const key of Array.from(this.store.keys())) {
+      if (key === keyOrPrefix || key.startsWith(keyOrPrefix)) {
+        this.store.delete(key);
+      }
+    }
+  }
+
+  clear(): void {
+    this.store.clear();
+  }
+}
+
+const cache = new SimpleCache();
+const CACHE_KEYS = {
+  placesList: "places:list",
+  place: (id: string) => `places:${id}`,
+} as const;
+
 export interface IStorage {
   getPlaces(): Promise<PlaceWithReviews[]>;
   getPlace(id: string): Promise<PlaceWithReviews | undefined>;
@@ -69,6 +117,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlaces(): Promise<PlaceWithReviews[]> {
+    const cached = cache.get<PlaceWithReviews[]>(CACHE_KEYS.placesList);
+    if (cached) return cached;
+
     // Get only approved places for public view (max 200)
     const approvedPlaces = await db
       .select()
@@ -78,23 +129,35 @@ export class DatabaseStorage implements IStorage {
       .limit(200);
 
     // Shrink payload for massive listing endpoints using bulk fetch
-    return this.buildPlacesBulk(approvedPlaces, true);
+    const result = await this.buildPlacesBulk(approvedPlaces, true);
+    cache.set(CACHE_KEYS.placesList, result);
+    return result;
   }
 
   async getPlace(id: string): Promise<PlaceWithReviews | undefined> {
+    const cacheKey = CACHE_KEYS.place(id);
+    const cached = cache.get<PlaceWithReviews>(cacheKey);
+    if (cached) return cached;
+
     const [place] = await db.select().from(places).where(eq(places.id, id));
     if (!place) return undefined;
 
-    return this.buildPlaceWithReviews(place, true);
+    const result = await this.buildPlaceWithReviews(place, true);
+    cache.set(cacheKey, result);
+    return result;
   }
 
   async createPlace(place: InsertPlace): Promise<Place> {
     const [newPlace] = await db.insert(places).values(place as any).returning();
+    cache.invalidate(CACHE_KEYS.placesList); // new place added — bust list cache
     return newPlace;
   }
 
   async createReview(review: InsertReview): Promise<Review> {
     const [newReview] = await db.insert(reviews).values(review as any).returning();
+    // A new review changes averageRating — bust both caches
+    cache.invalidate(CACHE_KEYS.placesList);
+    cache.invalidate(CACHE_KEYS.place((review as any).placeId as string));
     return newReview;
   }
 
@@ -128,6 +191,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async approvePlace(placeId: string, adminUserId: string): Promise<Place | undefined> {
+    cache.invalidate(CACHE_KEYS.placesList);
+    cache.invalidate(CACHE_KEYS.place(placeId));
     // 1. Fetch the pending place to check for images
     const [pendingPlace] = await db
       .select({
@@ -167,6 +232,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async rejectPlace(placeId: string): Promise<boolean> {
+    cache.invalidate(CACHE_KEYS.placesList);
+    cache.invalidate(CACHE_KEYS.place(placeId));
     // First delete associated reviews to avoid FK constraint violations
     await db.delete(reviews).where(eq(reviews.placeId, placeId));
 
@@ -255,6 +322,9 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     if (!submission) return undefined;
+    // Image added to place — bust caches so new image shows immediately
+    cache.invalidate(CACHE_KEYS.placesList);
+    cache.invalidate(CACHE_KEYS.place(submission.placeId));
 
     // 2. Copy the URL into the next free imageUrl slot on the parent place
     const [place] = await db.select().from(places).where(eq(places.id, submission.placeId));

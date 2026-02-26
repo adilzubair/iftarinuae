@@ -315,6 +315,24 @@ export async function registerRoutes(app: Express, strictLimiter?: RequestHandle
     }
   });
 
+  // === KEEP-ALIVE (Render Free Tier) ===
+  // Render free services sleep after 15 minutes of inactivity.
+  // We self-ping every 14 minutes to keep the server awake.
+  // Only runs in production on Render (RENDER env var is set automatically by Render).
+  if (process.env.NODE_ENV === "production" && process.env.RENDER) {
+    const KEEP_ALIVE_INTERVAL = 14 * 60 * 1000; // 14 minutes
+    setInterval(async () => {
+      try {
+        const host = process.env.RENDER_EXTERNAL_URL || `http://localhost:${process.env.PORT || 5000}`;
+        await fetch(`${host}/api/health`);
+        console.log("[keep-alive] pinged", new Date().toISOString());
+      } catch (err) {
+        console.warn("[keep-alive] ping failed:", err);
+      }
+    }, KEEP_ALIVE_INTERVAL);
+    console.log("[keep-alive] Self-ping enabled (every 14 min) to prevent Render sleep.");
+  }
+
   // === SEO ROUTES ===
 
   app.get("/robots.txt", (req, res) => {

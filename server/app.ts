@@ -7,9 +7,15 @@ import { rateLimit } from "express-rate-limit";
 export async function createApp() {
     const app = express();
 
-    // Trust Vercel's proxy so express-rate-limit can read the real client IP
-    // from the X-Forwarded-For header (fixes ERR_ERL_UNEXPECTED_X_FORWARDED_FOR)
+    // Trust the platform's reverse proxy (Vercel, Render, etc.) so express-rate-limit
+    // can read the real client IP from the X-Forwarded-For header.
     app.set("trust proxy", 1);
+
+    // Exempt the health check from all rate limiting — it must always respond
+    // (used by Render's health checker and our keep-alive ping).
+    app.use("/api/health", (req, res) => {
+        res.json({ status: "ok", ts: Date.now() });
+    });
 
     // Security Headers
     const isDev = process.env.NODE_ENV !== "production";
@@ -26,6 +32,8 @@ export async function createApp() {
                     "https://securetoken.googleapis.com",
                     "https://*.firebaseio.com",
                     "wss://*.firebaseio.com",
+                    // Allow WebSocket connections back to our own server (Render domain)
+                    "wss://*.onrender.com",
                     // Map feature: Photon search + Nominatim reverse geocoding
                     "https://photon.komoot.io",
                     "https://nominatim.openstreetmap.org",
