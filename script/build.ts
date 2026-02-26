@@ -56,7 +56,10 @@ async function buildAll() {
       "process.env.NODE_ENV": '"production"',
     },
     minify: true,
-    external: externals,
+    // vite MUST be external: it's dev-only and importing it pulls in vite.config.ts
+    // which uses import.meta.dirname — undefined in CJS format → startup crash on Render.
+    // sharp MUST be external: it uses native binaries that can't be bundled.
+    external: [...externals, "vite", "sharp"],
     logLevel: "info",
   });
 
