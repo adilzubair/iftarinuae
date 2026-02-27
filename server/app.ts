@@ -25,7 +25,7 @@ export async function createApp() {
         contentSecurityPolicy: isDev ? false : {
             directives: {
                 defaultSrc: ["'self'"],
-                scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://www.googletagmanager.com"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://www.googletagmanager.com", "https://plausible.io"],
                 connectSrc: [
                     "'self'",
                     "https://identitytoolkit.googleapis.com",
@@ -37,6 +37,8 @@ export async function createApp() {
                     // Map feature: Photon search + Nominatim reverse geocoding
                     "https://photon.komoot.io",
                     "https://nominatim.openstreetmap.org",
+                    // Plausible analytics
+                    "https://plausible.io",
                 ],
                 imgSrc: ["'self'", "data:", "https:", "blob:"],
                 styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],

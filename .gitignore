@@ -10,3 +10,4 @@ DEPLOYMENT.md
 scripts/
 migrations/
 iftarinuae_backup.dump
+api/index.cjs
