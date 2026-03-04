@@ -20,6 +20,7 @@ import { SEO } from "@/components/SEO";
 import { ShareButton } from "@/components/ShareButton";
 import { ImageUpload } from "@/components/ImageUpload";
 import { useToast } from "@/hooks/use-toast";
+import { useWebHaptics } from "web-haptics/react";
 
 export default function PlaceDetails() {
   const { id } = useParams();
@@ -31,11 +32,13 @@ export default function PlaceDetails() {
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<[string | null, string | null, string | null]>([null, null, null]);
   const [submittingPhoto, setSubmittingPhoto] = useState(false);
+  const { trigger } = useWebHaptics();
 
   const handlePhotoSubmit = async () => {
     const url = pendingPhoto[0]; // Only single-photo submission per request
     if (!url) return;
 
+    trigger([{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }]);
     setSubmittingPhoto(true);
     try {
       const token = await getIdToken();
@@ -126,7 +129,10 @@ export default function PlaceDetails() {
               {place.googleMapLink || (place.latitude && place.longitude) ? (
                 <button
                   type="button"
-                  onClick={() => window.open(place.googleMapLink || `https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank")}
+                  onClick={() => {
+                    trigger();
+                    window.open(place.googleMapLink || `https://www.google.com/maps?q=${place.latitude},${place.longitude}`, "_blank");
+                  }}
                   className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer group"
                 >
                   <MapPin className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -302,11 +308,13 @@ function ReviewDialog({ placeId, isAuthenticated, label = "Write a Review" }: { 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const createReview = useCreateReview(placeId);
+  const { trigger } = useWebHaptics();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) return;
 
+    trigger([{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }]);
     await createReview.mutateAsync({
       rating,
       comment,
@@ -317,6 +325,7 @@ function ReviewDialog({ placeId, isAuthenticated, label = "Write a Review" }: { 
   };
 
   const handleTriggerClick = (e: React.MouseEvent) => {
+    trigger();
     if (!isAuthenticated) {
       e.preventDefault();
       window.location.href = "/login";

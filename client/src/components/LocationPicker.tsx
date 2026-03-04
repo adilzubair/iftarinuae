@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Loader2, Navigation, AlertCircle, Search, Map, Link as LinkIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useWebHaptics } from "web-haptics/react";
 
 // Lazy-load the heavy Leaflet map so it doesn't bloat the initial bundle
 const MapPicker = lazy(() =>
@@ -190,6 +191,7 @@ export function LocationPicker({
   const [activeTab, setActiveTab] = useState<Tab>("search");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { trigger } = useWebHaptics();
 
   // Search tab state
   const [searchQuery, setSearchQuery] = useState("");
@@ -331,6 +333,7 @@ export function LocationPicker({
 
   // ── GPS tab: existing logic ───────────────────────────────────────────────
   const fetchGpsLocation = async () => {
+    trigger();
     setIsLoading(true);
     setError(null);
 
@@ -454,7 +457,7 @@ export function LocationPicker({
           <button
             key={tab.id}
             type="button"
-            onClick={() => { setActiveTab(tab.id); setError(null); }}
+            onClick={() => { trigger([{ duration: 8 }], { intensity: 0.3 }); setActiveTab(tab.id); setError(null); }}
             className={cn(
               "flex-none sm:flex-1 shrink-0 snap-start flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-lg text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap",
               activeTab === tab.id

@@ -3,6 +3,7 @@ import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
 import { ArrowLeft, ArrowRight } from "lucide-react"
+import { useWebHaptics } from "web-haptics/react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -197,6 +198,7 @@ const CarouselPrevious = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
+  const { trigger } = useWebHaptics()
 
   return (
     <Button
@@ -211,7 +213,7 @@ const CarouselPrevious = React.forwardRef<
         className
       )}
       disabled={!canScrollPrev}
-      onClick={scrollPrev}
+      onClick={() => { trigger([{ duration: 8 }], { intensity: 0.3 }); scrollPrev(); }}
       {...props}
     >
       <ArrowLeft className="h-4 w-4" />
@@ -226,6 +228,7 @@ const CarouselNext = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
+  const { trigger } = useWebHaptics()
 
   return (
     <Button
@@ -240,7 +243,7 @@ const CarouselNext = React.forwardRef<
         className
       )}
       disabled={!canScrollNext}
-      onClick={scrollNext}
+      onClick={() => { trigger([{ duration: 8 }], { intensity: 0.3 }); scrollNext(); }}
       {...props}
     >
       <ArrowRight className="h-4 w-4" />

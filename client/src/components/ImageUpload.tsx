@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getIdToken } from "@/lib/firebase";
+import { useWebHaptics } from "web-haptics/react";
 
 interface ImageUploadProps {
     /** Up to 3 current image URLs */
@@ -45,6 +46,7 @@ export function ImageUpload({
     maxSlots = MAX_IMAGES,
 }: ImageUploadProps) {
     const [uploading, setUploading] = useState<number | null>(null);
+    const { trigger } = useWebHaptics();
 
     // Normalise to exactly 3 slots
     const slots: (string | null)[] = [
@@ -111,6 +113,7 @@ export function ImageUpload({
 
     const handleRemove = useCallback(
         (slotIndex: number) => {
+            trigger();
             const updated = [...slots] as [string | null, string | null, string | null];
             updated[slotIndex] = null;
             onChange(updated);

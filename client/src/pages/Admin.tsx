@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { PlaceWithReviews } from "@shared/schema";
 import { Loader2, Check, X, ShieldAlert } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
 
 interface AdminStats {
   totalPlaces: number;
@@ -40,6 +41,7 @@ export default function Admin() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [imageActionLoading, setImageActionLoading] = useState<string | null>(null);
+  const { trigger } = useWebHaptics();
 
   // Auth check
   useEffect(() => {
@@ -97,6 +99,7 @@ export default function Admin() {
   }, [user]);
 
   const handleApprove = async (id: string) => {
+    trigger([{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }]);
     setActionLoading(id);
     try {
       const token = await getIdToken();
@@ -125,6 +128,7 @@ export default function Admin() {
   const handleReject = async (id: string) => {
     if (!confirm("Are you sure you want to reject and delete this place?")) return;
 
+    trigger([{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }]);
     setActionLoading(id);
     try {
       const token = await getIdToken();
@@ -151,6 +155,7 @@ export default function Admin() {
   };
 
   const handleApproveImage = async (id: string) => {
+    trigger([{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }]);
     setImageActionLoading(id);
     try {
       const token = await getIdToken();
@@ -171,6 +176,7 @@ export default function Admin() {
 
   const handleRejectImage = async (id: string) => {
     if (!confirm("Remove this photo submission?")) return;
+    trigger([{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }]);
     setImageActionLoading(id);
     try {
       const token = await getIdToken();
@@ -206,7 +212,7 @@ export default function Admin() {
           <ShieldAlert className="h-8 w-8 text-primary" />
           Admin Dashboard
         </h1>
-        <Button variant="outline" onClick={fetchData}>Refresh Data</Button>
+        <Button variant="outline" onClick={() => { trigger([{ duration: 8 }], { intensity: 0.3 }); fetchData(); }}>Refresh Data</Button>
       </div>
 
       {/* Stats Cards */}

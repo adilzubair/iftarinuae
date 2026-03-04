@@ -3,6 +3,7 @@ import { Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useWebHaptics } from "web-haptics/react";
 
 interface ShareButtonProps {
   title: string;
@@ -16,8 +17,10 @@ interface ShareButtonProps {
 export function ShareButton({ title, text, url, className, variant = "ghost", size = "icon" }: ShareButtonProps) {
   const { toast } = useToast();
   const [hasCopied, setHasCopied] = useState(false);
+  const { trigger } = useWebHaptics();
 
   const handleShare = async (e: React.MouseEvent) => {
+    trigger();
     e.preventDefault();
     e.stopPropagation();
 

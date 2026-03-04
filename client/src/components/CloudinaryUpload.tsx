@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWebHaptics } from "web-haptics/react";
 
 interface CloudinaryUploadProps {
     /** Up to 3 current image URLs */
@@ -42,6 +43,7 @@ export function CloudinaryUpload({
     maxSlots = MAX_IMAGES,
 }: CloudinaryUploadProps) {
     const [uploading, setUploading] = useState<number | null>(null); // slot index uploading
+    const { trigger } = useWebHaptics();
 
     // Normalise to exactly 3 slots
     const slots: (string | null)[] = [
@@ -85,6 +87,7 @@ export function CloudinaryUpload({
 
     const handleRemove = useCallback(
         (slotIndex: number) => {
+            trigger();
             const updated = [...slots] as [string | null, string | null, string | null];
             updated[slotIndex] = null;
             onChange(updated);

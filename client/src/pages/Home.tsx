@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SEO } from "@/components/SEO";
 import { useToast } from "@/hooks/use-toast";
 import { PlaceWithDistance } from "@shared/schema";
+import { useWebHaptics } from "web-haptics/react";
 
 export default function Home() {
   const { data: places, isLoading, error } = usePlaces();
@@ -28,7 +29,10 @@ export default function Home() {
     setIsFindingNearest(false);
   };
 
+  const { trigger } = useWebHaptics();
+
   const handleFindNearest = async () => {
+    trigger();
     setLocationDenied(false);
     setIsFindingNearest(true);
     setSearch("");
@@ -96,6 +100,7 @@ export default function Home() {
   };
 
   const clearNearby = () => {
+    trigger();
     setNearbyPlaces(null);
   };
 
@@ -291,7 +296,10 @@ export default function Home() {
         <div className="mb-8 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           <div className="flex gap-2 min-w-max items-center">
             <button
-              onClick={() => setFamilyFriendlyOnly(!familyFriendlyOnly)}
+              onClick={() => {
+                trigger([{ duration: 8 }], { intensity: 0.3 });
+                setFamilyFriendlyOnly(!familyFriendlyOnly);
+              }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border flex items-center gap-1.5 ${
                 familyFriendlyOnly
                   ? "bg-uae-green/10 text-uae-green border-uae-green/30 md:hover:bg-uae-green/20 active:bg-uae-green/20"
@@ -307,7 +315,10 @@ export default function Home() {
             {EMIRATES.map((emirate) => (
               <button
                 key={emirate}
-                onClick={() => setSelectedEmirate(emirate)}
+                onClick={() => {
+                  trigger([{ duration: 8 }], { intensity: 0.3 });
+                  setSelectedEmirate(emirate);
+                }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
                   selectedEmirate === emirate
                     ? "bg-foreground text-background border-foreground"
@@ -364,7 +375,7 @@ export default function Home() {
                 : "Be the first to share an Iftar spot!"}
           </p>
           {search ? (
-            <Button variant="outline" onClick={() => setSearch("")}>Clear Search</Button>
+            <Button variant="outline" onClick={() => { trigger(); setSearch(""); }}>Clear Search</Button>
           ) : (
             <Link href="/add">
               <Button>Add a Place in {selectedEmirate !== "All" ? selectedEmirate : ""}</Button>

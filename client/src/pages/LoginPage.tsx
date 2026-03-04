@@ -6,13 +6,16 @@ import { MoonStar, Loader2 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useToast } from "@/hooks/use-toast";
 import { signInWithGoogle } from "@/lib/firebase";
+import { useWebHaptics } from "web-haptics/react";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { trigger } = useWebHaptics();
 
   const handleGoogleSignIn = async () => {
+    trigger();
     setIsLoading(true);
     try {
       const user = await signInWithGoogle();

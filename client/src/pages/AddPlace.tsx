@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LocationPicker } from "@/components/LocationPicker";
 import { ImageUpload } from "@/components/ImageUpload";
+import { useWebHaptics } from "web-haptics/react";
 
 export default function AddPlace() {
   const [, setLocation] = useLocation();
@@ -21,6 +22,7 @@ export default function AddPlace() {
 
   // Manage up to 3 image URLs independently of react-hook-form
   const [imageUrls, setImageUrls] = useState<[string | null, string | null, string | null]>([null, null, null]);
+  const { trigger } = useWebHaptics();
 
   const form = useForm<CreatePlaceRequest>({
     resolver: zodResolver(insertPlaceSchema),
@@ -40,6 +42,7 @@ export default function AddPlace() {
 
   const onSubmit = async (data: CreatePlaceRequest) => {
     try {
+      trigger([{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }]);
       // Merge the image URLs (from Cloudinary state) into the form data
       await createPlace.mutateAsync({
         ...data,

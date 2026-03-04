@@ -1,9 +1,11 @@
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
+import { useWebHaptics } from "web-haptics/react"
 
 export function ThemeToggle() {
   const { theme, setTheme, systemTheme } = useTheme()
+  const { trigger } = useWebHaptics()
 
   // To solve hydration mismatch, we can just toggle simple state,
   // but next-themes handles this. A simple toggle is fine.
@@ -15,7 +17,10 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(currentTheme === "dark" ? "light" : "dark")}
+      onClick={() => {
+        trigger([{ duration: 8 }], { intensity: 0.3 })
+        setTheme(currentTheme === "dark" ? "light" : "dark")
+      }}
       className="rounded-full w-9 h-9 border border-border/40 hover:bg-secondary transition-colors"
       title="Toggle theme"
     >

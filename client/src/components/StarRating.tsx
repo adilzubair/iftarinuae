@@ -1,5 +1,6 @@
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWebHaptics } from "web-haptics/react";
 
 interface StarRatingProps {
   value: number;
@@ -17,6 +18,7 @@ export function StarRating({
   className 
 }: StarRatingProps) {
   const stars = [1, 2, 3, 4, 5];
+  const { trigger } = useWebHaptics();
   
   const sizeClasses = {
     sm: "w-4 h-4",
@@ -31,7 +33,12 @@ export function StarRating({
           key={star}
           type="button"
           disabled={readOnly}
-          onClick={() => !readOnly && onChange?.(star)}
+          onClick={() => {
+            if (!readOnly) {
+              trigger([{ duration: 8 }], { intensity: 0.3 });
+              onChange?.(star);
+            }
+          }}
           className={cn(
             "transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
             readOnly ? "cursor-default" : "cursor-pointer hover:scale-110 active:scale-95"

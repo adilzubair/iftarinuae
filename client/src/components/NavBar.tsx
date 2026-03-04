@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -18,12 +19,15 @@ export function NavBar() {
   const [location] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
+  const { trigger } = useWebHaptics();
 
   const handleLogin = () => {
+    trigger([{ duration: 8 }], { intensity: 0.3 });
     window.location.href = "/login";
   };
 
   const handleLogoClick = (e: React.MouseEvent) => {
+    trigger([{ duration: 8 }], { intensity: 0.3 });
     if (location === "/") {
       e.preventDefault();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -103,7 +107,7 @@ export function NavBar() {
                       <DropdownMenuSeparator />
                     </>
                   )}
-                  <DropdownMenuItem onClick={() => logout()} className="text-red-500 focus:text-red-500 focus:bg-red-50 rounded-lg cursor-pointer">
+                  <DropdownMenuItem onClick={() => { trigger([{ duration: 8 }], { intensity: 0.3 }); logout(); }} className="text-red-500 focus:text-red-500 focus:bg-red-50 rounded-lg cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>

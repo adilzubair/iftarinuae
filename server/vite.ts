@@ -3,7 +3,11 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { nanoid } from "nanoid";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const viteLogger = createLogger();
 
