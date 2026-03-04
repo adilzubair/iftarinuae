@@ -6,8 +6,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { nanoid } from "nanoid";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __vite_dirname = typeof __dirname !== "undefined"
+  ? __dirname
+  : path.dirname(fileURLToPath(import.meta.url));
 
 const viteLogger = createLogger();
 
@@ -27,12 +28,12 @@ export async function setupVite(server: Server, app: Express) {
     plugins: [(await import("@vitejs/plugin-react")).default()],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "..", "client", "src"),
-        "@shared": path.resolve(__dirname, "..", "shared"),
-        "@assets": path.resolve(__dirname, "..", "attached_assets"),
+        "@": path.resolve(__vite_dirname, "..", "client", "src"),
+        "@shared": path.resolve(__vite_dirname, "..", "shared"),
+        "@assets": path.resolve(__vite_dirname, "..", "attached_assets"),
       },
     },
-    root: path.resolve(__dirname, "..", "client"),
+    root: path.resolve(__vite_dirname, "..", "client"),
     configFile: false,
     customLogger: {
       ...viteLogger,
@@ -55,7 +56,7 @@ export async function setupVite(server: Server, app: Express) {
 
     try {
       const clientTemplate = path.resolve(
-        __dirname, // __dirname works in CJS; import.meta.dirname does not
+        __vite_dirname,
         "..",
         "client",
         "index.html",
